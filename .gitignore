@@ -1,0 +1,124 @@
+# ==================== #
+# Cocos2d-x 特定文件   #
+# ==================== #
+
+# CMake 构建目录
+build/
+cmake-build-*/
+
+# Visual Studio 项目临时文件
+proj.win32/Debug/
+proj.win32/Release/
+proj.win32/*.sdf
+proj.win32/*.suo
+proj.win32/*.user
+proj.win32/*.VC.db
+
+proj.win64/Debug/
+proj.win64/Release/
+proj.win64/*.sdf
+proj.win64/*.suo
+proj.win64/*.user
+proj.win64/*.VC.db
+
+# Cocos Creator 相关（如果同时使用）
+library/
+local/
+temp/
+settings/
+
+# ==================== #
+# 系统文件             #
+# ==================== #
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# ==================== #
+# IDE 和编辑器文件     #
+# ==================== #
+
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.vcxproj.filters
+*.sln.docstates
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# CLion
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# ==================== #
+# 编译输出文件         #
+# ==================== #
+
+# 对象文件
+*.obj
+*.o
+*.pch
+
+# 预编译头文件
+*.pch
+
+# 调试文件
+*.pdb
+*.idb
+*.ilk
+*.db
+
+# 静态库和动态库
+*.lib
+*.a
+*.dll
+*.so
+*.dylib
+
+# 执行文件
+*.exe
+*.out
+*.app
+
+# ==================== #
+# 日志和临时文件       #
+# ==================== #
+
+*.log
+*.tmp
+*.temp
+
+# ==================== #
+# 其他                 #
+# ==================== #
+
+# 包文件
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# 备份文件
+*.bak
+*.backup
