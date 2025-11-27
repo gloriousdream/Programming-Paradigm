@@ -21,7 +21,7 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
  ****************************************************************************/
-//helloº«ºÆËÕ
+//hello91´ÞÏÈÉú
 #include "main.h"
 #include "AppDelegate.h"
 #include "cocos2d.h"
