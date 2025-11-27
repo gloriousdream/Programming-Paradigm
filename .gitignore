@@ -4,7 +4,10 @@
 
 # CMake 构建目录
 build/
-cmake-build-*/
+!build/*.sln
+!build/*.vcxproj
+!build/*.vcxproj.filters
+!build/*.slnf
 
 # Visual Studio 项目临时文件
 proj.win32/Debug/
@@ -122,3 +125,14 @@ Desktop.ini
 # 备份文件
 *.bak
 *.backup
+
+# 删除的平台项目
+proj.android/
+proj.ios_mac/
+proj.linux/
+
+# 保留的 Windows 项目
+!proj.win32/
+
+# Cocos2d-x 引擎文件（不提交到仓库）
+cocos2d/
