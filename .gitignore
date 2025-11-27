@@ -136,3 +136,6 @@ proj.linux/
 
 # Cocos2d-x 引擎文件（不提交到仓库）
 cocos2d/
+
+# Cocos 项目配置文件
+.cocos-project.json
