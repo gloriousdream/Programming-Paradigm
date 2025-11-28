@@ -142,3 +142,8 @@ cocos2d/
 
 # CMake 配置文件
 CMakeLists.txt
+
+# 忽略所有 proj. 开头的文件夹
+proj.*
+# 但排除 proj.win32
+!proj.win32/
