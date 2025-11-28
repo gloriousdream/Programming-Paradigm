@@ -24,11 +24,22 @@ proj.win64/*.suo
 proj.win64/*.user
 proj.win64/*.VC.db
 
-# Cocos Creator 相关（如果同时使用）
-library/
-local/
-temp/
-settings/
+# 删除的平台项目
+proj.android/
+proj.ios_mac/
+proj.linux/
+
+# 保留的 Windows 项目
+!proj.win32/
+
+# Cocos2d-x 引擎文件（不提交到仓库）
+cocos2d/
+
+# Cocos 项目配置文件
+.cocos-project.json
+
+# CMake 配置文件
+CMakeLists.txt
 
 # ==================== #
 # 系统文件             #
@@ -126,27 +137,15 @@ Desktop.ini
 *.bak
 *.backup
 
-# 删除的平台项目
-proj.android/
-proj.ios_mac/
-proj.linux/
+# ==================== #
+# 重要：源代码文件例外  #
+# ==================== #
 
-# 保留的 Windows 项目
-!proj.win32/
-
-# Cocos2d-x 引擎文件（不提交到仓库）
-cocos2d/
-
-# Cocos 项目配置文件
-.cocos-project.json
-
-# CMake 配置文件
-CMakeLists.txt
-
-# 忽略所有 proj. 开头的文件夹
-proj.*
-# 但排除 proj.win32
-!proj.win32/
-
+# 不要忽略 C++ 源文件
 !*.cpp
 !*.h
+!*.hpp
+
+# 确保这些目录中的源文件不被忽略
+!Classes/
+!proj.win32/

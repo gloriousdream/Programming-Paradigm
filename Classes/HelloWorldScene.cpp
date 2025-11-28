@@ -77,10 +77,10 @@ bool HelloWorld::init()
     }
 
     // add "HelloWorld" splash screen"
-    auto sprite = Sprite::create("test.png");
+    auto sprite = Sprite::create("StartBackground.jpg");
     if (sprite == nullptr)
     {
-        problemLoading("'test.png'");
+        problemLoading("'StartBackground.jpg'");
     }
     else
     {
