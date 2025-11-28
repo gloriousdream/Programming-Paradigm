@@ -2,12 +2,12 @@
 # Cocos2d-x 特定文件   #
 # ==================== #
 
-# CMake 构建目录
-build/
-!build/*.sln
-!build/*.vcxproj
-!build/*.vcxproj.filters
-!build/*.slnf
+# # CMake 构建目录
+# build/
+# !build/*.sln
+# !build/*.vcxproj
+# !build/*.vcxproj.filters
+# !build/*.slnf
 
 # Visual Studio 项目临时文件
 proj.win32/Debug/
