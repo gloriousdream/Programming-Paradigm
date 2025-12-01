@@ -834,12 +834,16 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   <ItemGroup>
     <ClInclude Include="..\Classes\GameScene.h" />
     <ClInclude Include="..\Classes\StartBackground.h" />
+    <ClInclude Include="BuildingManager.h" />
+    <ClInclude Include="BuildMenu.h" />
     <ClInclude Include="D:\cocos_game\Classes\AppDelegate.h" />
     <ClInclude Include="D:\cocos_game\Classes\HelloWorldScene.h" />
     <ClInclude Include="D:\cocos_game\proj.win32\main.h" />
     <ClInclude Include="D:\cocos_game\proj.win32\resource.h" />
     <ClCompile Include="..\Classes\GameScene.cpp" />
     <ClCompile Include="..\Classes\StartBackground.cpp" />
+    <ClCompile Include="BuildingManager.cpp" />
+    <ClCompile Include="BuildMenu.cpp" />
     <ClCompile Include="D:\cocos_game\Classes\AppDelegate.cpp" />
     <ClCompile Include="D:\cocos_game\Classes\HelloWorldScene.cpp" />
     <ClCompile Include="D:\cocos_game\proj.win32\main.cpp" />

@@ -18,7 +18,6 @@ static void problemLoading(const char* filename)
 // on "init" you need to initialize your instance
 bool StartBackground::init()
 {
-    //////////////////////////////
     // 1. super init first
     if (!Scene::init())
     {
@@ -29,13 +28,11 @@ bool StartBackground::init()
 
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
-    /////////////////////////////
-    // 2. add a menu item with "X" image, which is clicked to quit the program
-    //    you may modify it.
+    // 加入图片
 
     auto startItem = MenuItemImage::create(
-        "GetStart.png",      // 按钮的图片
-        "GetStart.png",      // 可以使用同一张（如果没有按下态）
+        "GetStart.png",      // 开始按钮的图片
+        "GetStart.png",      
         CC_CALLBACK_1(StartBackground::menuStartGameCallback, this)
     );
 
