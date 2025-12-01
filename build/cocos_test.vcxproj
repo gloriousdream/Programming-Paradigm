@@ -852,7 +852,9 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="D:\cocos_game\Resources\res\.gitkeep" />
     <ClCompile Include="D:\cocos_game\cocos2d\cocos\precheader.cpp" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Image Include="..\Resources\Grass.png" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="D:\cocos_game\build\ZERO_CHECK.vcxproj">
       <Project>{82B1B73E-4109-3913-8F48-D107C373DDBC}</Project>

@@ -20,12 +20,12 @@ bool GameScene::init()
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
     //////////////////////////////
-    // 2. Ìí¼Ó±³¾° PlantBackground.png
-    auto bg = Sprite::create("PlantBackground.png");
+    // 2. Ìí¼Ó±³¾° GrassBackground.png
+    auto bg = Sprite::create("GrassBackground.png");
 
     if (bg == nullptr)
     {
-        printf("Error loading 'PlantBackground.png'\n");
+        printf("Error loading 'GrassBackground.png'\n");
     }
     else
     {
