@@ -15,22 +15,22 @@ bool BuildMenu::init()
     auto bg = LayerColor::create(Color4B(0, 0, 0, 150));
     this->addChild(bg);
 
-    // 创建3个建筑icon
+    // 创建3个建筑
     auto goldMine = MenuItemImage::create(
-        "icons/goldmine.png",
-        "icons/goldmine.png",
+        "MilitaryCamp.png",
+        "MilitaryCamp.png",
         [=](Ref*) { if (onSelectBuilding) onSelectBuilding(1); }
     );
 
     auto water = MenuItemImage::create(
-        "icons/water.png",
-        "icons/water.png",
+        "WaterCollection.png",
+        "WaterCollection.png",
         [=](Ref*) { if (onSelectBuilding) onSelectBuilding(2); }
     );
 
     auto barrack = MenuItemImage::create(
-        "icons/barrack.png",
-        "icons/barrack.png",
+        "ArrowTower.png",
+        "ArrowTower.png",
         [=](Ref*) { if (onSelectBuilding) onSelectBuilding(3); }
     );
 
