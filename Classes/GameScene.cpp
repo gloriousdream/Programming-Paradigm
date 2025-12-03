@@ -1,7 +1,8 @@
 #include "GameScene.h"
 #include "BuildMenu.h"
 #include "BuildingManager.h"
-
+#include "Soldiermenu.h"
+#include "SoldierManager.h"
 USING_NS_CC;
 
 Scene* GameScene::createScene()
@@ -43,21 +44,29 @@ bool GameScene::init()
         "Building.png",
         CC_CALLBACK_0(GameScene::onBuildButtonPressed, this)
     );
-
-    auto menu = Menu::create(buildBtn, nullptr);
+    auto soldier = MenuItemImage::create(
+        "Soldier.png",
+        "Soldier.png",
+        CC_CALLBACK_0(GameScene::onSoldierpushed, this)
+    );
+    auto menu = Menu::create(buildBtn,soldier, nullptr);
     menu->setPosition(origin.x + visibleSize.width - 120, origin.y + visibleSize.height / 2);
+    menu->alignItemsVerticallyWithPadding(50);
     this->addChild(menu, 10);
-
     // -----------------------------
     // 3. 监听点击草地（建造模式使用）
     // -----------------------------
     auto listener = EventListenerTouchOneByOne::create();
     listener->onTouchBegan = [&](Touch* t, Event* e)
         {
-            if (placeMode)
+            if (placeModebuild)
             {
                 onMapClicked(t->getLocation());
                 return true;
+            }
+            if(placeModesoldier)
+            {
+                onMapClicked(t->getLocation());
             }
             return false;
         };
@@ -65,7 +74,21 @@ bool GameScene::init()
 
     return true;
 }
+// ======================================================
+//点击兵种按钮，可以查看我现有的兵种
+// ======================================================
 
+void GameScene::onSoldierpushed()
+{
+    auto menu = Soldiermenu::createMenu();
+    this->addChild(menu, 100);
+    //用户选择战士
+    menu->onSelectSoldier = [menu, this](int type)
+        {
+            enablePlaceMode(type,menu);
+            menu->removeFromParent();
+        };
+}
 // ======================================================
 //         点击“建筑”按钮 → 弹出建筑选择菜单
 // ======================================================
@@ -77,28 +100,36 @@ void GameScene::onBuildButtonPressed()
     // 用户选了某个建筑
     menu->onSelectBuilding = [menu, this](int type)
         {
-            enablePlaceMode(type);
+            enablePlaceMode(type,menu);
             menu->removeFromParent();
         };
 }
 
 // ======================================================
-//                 进入建造模式
+//                 进入建造//士兵创建模式
 // ======================================================
-void GameScene::enablePlaceMode(int type)
+template<typename T>
+void GameScene::enablePlaceMode(int type, T menu)//传入menu参数，使用typeid来进行类型的比较
 {
-    placeMode = true;
-    selectedBuildingType = type;
+    if(typeid(*menu)==typeid(BuildMenu))
+    {
+        placeModebuild = true;
+    }
+    if(typeid(*menu) == typeid(Soldiermenu))
+    {
+        placeModesoldier = true;
+    }
+    selectedType = type;
 
     CCLOG("进入建造模式，建筑类型 = %d", type);
 }
 
 // ======================================================
-//        点击草地 → 自动吸附到 64×64 格子并放置建筑
+//        点击草地 → 自动吸附到 64×64 格子并放置建筑/或者兵种
 // ======================================================
 void GameScene::onMapClicked(Vec2 pos)
 {
-    if (!placeMode) return;
+    if (!(placeModebuild ||placeModesoldier)) return;
 
     // 格子坐标（64×64）
     int gx = (int)(pos.x / 64);
@@ -107,13 +138,26 @@ void GameScene::onMapClicked(Vec2 pos)
     Vec2 snapPos = Vec2(gx * 64 + 32, gy * 64 + 32);
 
     // 创建建筑
-    auto building = BuildingManager::getInstance()->createBuilding(selectedBuildingType, snapPos);
-    if (building)
+    if(placeModebuild)
     {
-        this->addChild(building, 5);
+        auto building = BuildingManager::getInstance()->createBuilding(selectedType, snapPos);
+        if (building)
+        {
+            this->addChild(building, 5);
+        }
     }
-
+    if(placeModesoldier)
+    {
+        auto soldier = SoldierManager::getInstance()->createSoldier(selectedType, snapPos);
+        if (soldier)
+        {
+            this->addChild(soldier, 5);
+        }
+    }
+    //创建兵种
+    
     // 退出建造模式
-    placeMode = false;
-    selectedBuildingType = 0;
+    placeModebuild = false;
+    placeModesoldier = false;
+    selectedType = 0;
 }

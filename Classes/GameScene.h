@@ -12,11 +12,14 @@ public:
     CREATE_FUNC(GameScene);
 
 private:
-    bool placeMode = false;
-    int selectedBuildingType = 0;
+    bool placeModebuild = false;
+    bool placeModesoldier = false;
+    int  selectedType= 0;
 
+    void onSoldierpushed();
     void onBuildButtonPressed();
-    void enablePlaceMode(int type);
+    template<typename T>
+    void enablePlaceMode(int type,T menu);
     void onMapClicked(cocos2d::Vec2 pos);
 };
 
