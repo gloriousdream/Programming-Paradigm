@@ -1,4 +1,4 @@
-#include "GameScene.h"
+ï»¿#include "GameScene.h"
 #include "BuildMenu.h"
 #include "BuildingManager.h"
 #include "Soldiermenu.h"
@@ -10,8 +10,77 @@ Scene* GameScene::createScene()
     return GameScene::create();
 }
 
+void GameScene::onBuildingClicked(Sprite* building)
+{
+    showUpgradeButton(building);
+}
+
+void GameScene::showUpgradeButton(Sprite* building)
+{
+    this->removeChildByName("UPGRADE_MENU");
+
+    Vec2 pos = building->getPosition() + Vec2(0, 100);
+
+    auto btn = MenuItemImage::create(
+        "UpgradeButton.png",
+        "UpgradeButton.png",
+        [=](Ref*) {
+
+            int level = building->getTag();   // å½“å‰ç­‰çº§
+            level++;                           // å‡çº§
+            building->setTag(level);
+
+            // è¯»å–å»ºç­‘ç±»å‹
+            std::string name = building->getName(); // BUILDING_1
+            int type = atoi(name.substr(9).c_str());  // æå–æ•°å­—éƒ¨åˆ†
+
+            // ============================
+            //  ä¸åŒå»ºç­‘ â†’ ä¸åŒå‡çº§é€»è¾‘
+            // ============================
+            if (type == 1)  // å†›è¥
+            {
+                if (level == 1) building->setTexture("MilitaryCamp.png");
+                else if (level == 2) building->setTexture("MilitaryCamp.png");
+                else if (level == 3) building->setTexture("MilitaryCamp.png");
+            }
+            else if (type == 2)  // æ°´äº•
+            {
+                if (level == 1) building->setTexture("WaterCollection.png");
+                else if (level == 2) building->setTexture("WaterCollection.png");
+                else if (level == 3) building->setTexture("WaterCollection.png");
+            }
+            else if (type == 3) // ç®­å¡”
+            {
+                if (level == 1) building->setTexture("ArrowTower.png");
+                else if (level == 2) building->setTexture("ArrowTower2.png");
+                else if (level == 3) building->setTexture("ArrowTower2.png");
+            }
+
+            // åˆ é™¤å‡çº§æŒ‰é’®
+            this->removeChildByName("UPGRADE_MENU");
+        }
+    );
+
+    auto menu = Menu::create(btn, nullptr);
+    menu->setPosition(pos);
+    menu->setName("UPGRADE_MENU");
+    this->addChild(menu, 999);
+}
+
+
+
 bool GameScene::init()
 {
+    // =======================================
+    // ç›‘å¬å»ºç­‘ç‚¹å‡»äº‹ä»¶
+    // =======================================
+    auto listener = EventListenerCustom::create("BUILDING_CLICKED", [=](EventCustom* event) {
+        Sprite* building = (Sprite*)event->getUserData();
+        onBuildingClicked(building);
+        });
+    _eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
+
+
     if (!Scene::init())
     {
         return false;
@@ -21,7 +90,7 @@ bool GameScene::init()
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
     // -----------------------------
-    // 1. Ìí¼Ó²İµØ±³¾°
+    // 1. æ·»åŠ è‰åœ°èƒŒæ™¯
     // -----------------------------
     auto bg = Sprite::create("GrassBackground.png");
 
@@ -37,7 +106,7 @@ bool GameScene::init()
     }
 
     // -----------------------------
-    // 2. Ìí¼ÓÓÒ²à¡°½¨Öş¡±°´Å¥
+    // 2. æ·»åŠ å³ä¾§â€œå»ºç­‘â€æŒ‰é’®
     // -----------------------------
     auto buildBtn = MenuItemImage::create(
         "Building.png",
@@ -49,96 +118,104 @@ bool GameScene::init()
         "Soldier.png",
         CC_CALLBACK_0(GameScene::onSoldierpushed, this)
     );
-    auto menu = Menu::create(buildBtn,soldier, nullptr);
+    auto menu = Menu::create(buildBtn, soldier, nullptr);
     menu->setPosition(origin.x + visibleSize.width - 120, origin.y + visibleSize.height / 2);
     menu->alignItemsVerticallyWithPadding(50);
     this->addChild(menu, 10);
-    // -----------------------------
-    // 3. ¼àÌıµã»÷²İµØ£¨½¨ÔìÄ£Ê½Ê¹ÓÃ£©
-    // -----------------------------
-    auto listener = EventListenerTouchOneByOne::create();
-    listener->onTouchBegan = [&](Touch* t, Event* e)
+    // 3. ç›‘å¬ç‚¹å‡»è‰åœ°ï¼ˆå»ºé€ æ¨¡å¼ä½¿ç”¨ï¼‰
+    auto touchListener = EventListenerTouchOneByOne::create();
+    touchListener->onTouchBegan = [&](Touch* t, Event* e)
         {
             if (placeModebuild)
             {
                 onMapClicked(t->getLocation());
                 return true;
             }
-            if(placeModesoldier)
+            if (placeModesoldier)
             {
                 onMapClicked(t->getLocation());
             }
             return false;
         };
-    _eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
+    _eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, this);
+
+    // =======================================
+    // ç›‘å¬å»ºç­‘ç‚¹å‡»äº‹ä»¶
+    // =======================================
+    auto buildingListener = EventListenerCustom::create("BUILDING_CLICKED", [=](EventCustom* event) {
+        Sprite* building = (Sprite*)event->getUserData();
+        onBuildingClicked(building);
+        });
+    _eventDispatcher->addEventListenerWithSceneGraphPriority(buildingListener, this);
+
 
     return true;
 }
 // ======================================================
-//µã»÷±øÖÖ°´Å¥£¬¿ÉÒÔ²é¿´ÎÒÏÖÓĞµÄ±øÖÖ
+//ç‚¹å‡»å…µç§æŒ‰é’®ï¼Œå¯ä»¥æŸ¥çœ‹æˆ‘ç°æœ‰çš„å…µç§
 // ======================================================
 
 void GameScene::onSoldierpushed()
 {
     auto menu = Soldiermenu::createMenu();
     this->addChild(menu, 100);
-    //ÓÃ»§Ñ¡ÔñÕ½Ê¿
+    //ç”¨æˆ·é€‰æ‹©æˆ˜å£«
     menu->onSelectSoldier = [menu, this](int type)
         {
-            enablePlaceMode(type,menu);
+            enablePlaceMode(type, menu);
             menu->removeFromParent();
         };
 }
 // ======================================================
-//         µã»÷¡°½¨Öş¡±°´Å¥ ¡ú µ¯³ö½¨ÖşÑ¡Ôñ²Ëµ¥
+//         ç‚¹å‡»â€œå»ºç­‘â€æŒ‰é’® â†’ å¼¹å‡ºå»ºç­‘é€‰æ‹©èœå•
 // ======================================================
 void GameScene::onBuildButtonPressed()
 {
     auto menu = BuildMenu::createMenu();
     this->addChild(menu, 100);
 
-    // ÓÃ»§Ñ¡ÁËÄ³¸ö½¨Öş
+    // ç”¨æˆ·é€‰äº†æŸä¸ªå»ºç­‘
     menu->onSelectBuilding = [menu, this](int type)
         {
-            enablePlaceMode(type,menu);
+            enablePlaceMode(type, menu);
             menu->removeFromParent();
         };
 }
 
 // ======================================================
-//                 ½øÈë½¨Ôì//Ê¿±ø´´½¨Ä£Ê½
+//                 è¿›å…¥å»ºé€ //å£«å…µåˆ›å»ºæ¨¡å¼
 // ======================================================
 template<typename T>
-void GameScene::enablePlaceMode(int type, T menu)//´«Èëmenu²ÎÊı£¬Ê¹ÓÃtypeidÀ´½øĞĞÀàĞÍµÄ±È½Ï
+void GameScene::enablePlaceMode(int type, T menu)//ä¼ å…¥menuå‚æ•°ï¼Œä½¿ç”¨typeidæ¥è¿›è¡Œç±»å‹çš„æ¯”è¾ƒ
 {
-    if(typeid(*menu)==typeid(BuildMenu))
+    if (typeid(*menu) == typeid(BuildMenu))
     {
         placeModebuild = true;
     }
-    if(typeid(*menu) == typeid(Soldiermenu))
+    if (typeid(*menu) == typeid(Soldiermenu))
     {
         placeModesoldier = true;
     }
     selectedType = type;
 
-    CCLOG("½øÈë½¨ÔìÄ£Ê½£¬½¨ÖşÀàĞÍ = %d", type);
+    CCLOG("è¿›å…¥å»ºé€ æ¨¡å¼ï¼Œå»ºç­‘ç±»å‹ = %d", type);
 }
 
 // ======================================================
-//        µã»÷²İµØ ¡ú ×Ô¶¯Îü¸½µ½ 64¡Á64 ¸ñ×Ó²¢·ÅÖÃ½¨Öş/»òÕß±øÖÖ
+//        ç‚¹å‡»è‰åœ° â†’ è‡ªåŠ¨å¸é™„åˆ° 64Ã—64 æ ¼å­å¹¶æ”¾ç½®å»ºç­‘/æˆ–è€…å…µç§
 // ======================================================
 void GameScene::onMapClicked(Vec2 pos)
 {
-    if (!(placeModebuild ||placeModesoldier)) return;
+    if (!(placeModebuild || placeModesoldier)) return;
 
-    // ¸ñ×Ó×ø±ê£¨64¡Á64£©
+    // æ ¼å­åæ ‡ï¼ˆ64Ã—64ï¼‰
     int gx = (int)(pos.x / 64);
     int gy = (int)(pos.y / 64);
 
     Vec2 snapPos = Vec2(gx * 64 + 32, gy * 64 + 32);
 
-    // ´´½¨½¨Öş
-    if(placeModebuild)
+    // åˆ›å»ºå»ºç­‘
+    if (placeModebuild)
     {
         auto building = BuildingManager::getInstance()->createBuilding(selectedType, snapPos);
         if (building)
@@ -146,7 +223,7 @@ void GameScene::onMapClicked(Vec2 pos)
             this->addChild(building, 5);
         }
     }
-    if(placeModesoldier)
+    if (placeModesoldier)
     {
         auto soldier = SoldierManager::getInstance()->createSoldier(selectedType, snapPos);
         if (soldier)
@@ -154,9 +231,9 @@ void GameScene::onMapClicked(Vec2 pos)
             this->addChild(soldier, 5);
         }
     }
-    //´´½¨±øÖÖ
-    
-    // ÍË³ö½¨ÔìÄ£Ê½
+    //åˆ›å»ºå…µç§
+
+    // é€€å‡ºå»ºé€ æ¨¡å¼
     placeModebuild = false;
     placeModesoldier = false;
     selectedType = 0;

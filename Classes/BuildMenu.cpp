@@ -1,4 +1,4 @@
-#include "BuildMenu.h"
+ï»¿#include "BuildMenu.h"
 
 USING_NS_CC;
 
@@ -11,11 +11,11 @@ bool BuildMenu::init()
 {
     if (!Layer::init()) return false;
 
-    // °ëÍ¸Ã÷±³¾°
+    // Â°Ã«ÃÂ¸ÃƒÃ·Â±Â³Â¾Â°
     auto bg = LayerColor::create(Color4B(0, 0, 0, 150));
     this->addChild(bg);
 
-    // ´´½¨3¸ö½¨Öþ
+    // Â´Â´Â½Â¨3Â¸Ã¶Â½Â¨Ã–Ã¾
     auto goldMine = MenuItemImage::create(
         "MilitaryCamp.png",
         "MilitaryCamp.png",

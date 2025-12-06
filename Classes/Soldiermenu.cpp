@@ -34,8 +34,8 @@ bool Soldiermenu::init()
         [=](Ref*) { if (onSelectSoldier) onSelectSoldier(3); }
     );
     auto boomer = MenuItemImage::create(
-        "boom_selcet.png",
-        "boom_selcet.png",
+        "boom_select.png",
+        "boom_select.png",
         [=](Ref*) { if (onSelectSoldier) onSelectSoldier(4); }
     );
     auto menu = Menu::create(gongjianshou,yemanren,juren,boomer ,nullptr);

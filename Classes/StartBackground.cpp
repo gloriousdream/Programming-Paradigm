@@ -32,7 +32,7 @@ bool StartBackground::init()
 
     auto startItem = MenuItemImage::create(
         "GetStart.png",      // 开始按钮的图片
-        "GetStart.png",      
+        "GetStart.png",
         CC_CALLBACK_1(StartBackground::menuStartGameCallback, this)
     );
 

@@ -113,5 +113,34 @@ Sprite* BuildingManager::createBuilding(int type, Vec2 pos)
     // 建筑放下成功后标记格子
     occupyGrid(pos);
 
+    char nameBuf[32];
+    sprintf(nameBuf, "BUILDING_%d", type);
+    building->setName(nameBuf);
+
+    // =====================================
+    // 给建筑添加点击事件
+    // =====================================
+    auto listener = EventListenerTouchOneByOne::create();
+    listener->setSwallowTouches(true);
+
+    listener->onTouchBegan = [building](Touch* t, Event* e) {
+        Vec2 pos = building->convertToNodeSpace(t->getLocation());
+        Size s = building->getContentSize();
+
+        Rect rect(0, 0, s.width, s.height);
+
+        if (rect.containsPoint(pos)) {
+            // 点击到了建筑 ———> 发消息给 GameScene
+            Director::getInstance()->getEventDispatcher()->dispatchCustomEvent(
+                "BUILDING_CLICKED",
+                building
+            );
+            return true;
+        }
+        return false;
+        };
+
+    Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listener, building);
+
     return building;
 }
