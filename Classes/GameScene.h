@@ -8,12 +8,10 @@ class GameScene : public cocos2d::Scene
 public:
     static cocos2d::Scene* createScene();
     virtual bool init();
-
     CREATE_FUNC(GameScene);
 
     void onBuildingClicked(cocos2d::Sprite* building);
     void showUpgradeButton(cocos2d::Sprite* building);
-
 
 private:
     bool placeModebuild = false;

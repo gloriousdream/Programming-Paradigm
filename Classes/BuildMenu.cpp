@@ -1,5 +1,5 @@
 ﻿#include "BuildMenu.h"
-
+#include "cocos2d.h"
 USING_NS_CC;
 
 BuildMenu* BuildMenu::createMenu()
@@ -11,30 +11,14 @@ bool BuildMenu::init()
 {
     if (!Layer::init()) return false;
 
-    // °ëÍ¸Ã÷±³¾°
     auto bg = LayerColor::create(Color4B(0, 0, 0, 150));
     this->addChild(bg);
 
-    // ´´½¨3¸ö½¨Öþ
-    auto goldMine = MenuItemImage::create(
-        "MilitaryCamp.png",
-        "MilitaryCamp.png",
-        [=](Ref*) { if (onSelectBuilding) onSelectBuilding(1); }
-    );
+    auto military = MenuItemImage::create("MilitaryCamp.png", "MilitaryCamp.png", [=](Ref*) { if (onSelectBuilding) onSelectBuilding(1); });
+    auto water = MenuItemImage::create("WaterCollection.png", "WaterCollection.png", [=](Ref*) { if (onSelectBuilding) onSelectBuilding(2); });
+    auto arrow = MenuItemImage::create("ArrowTower.png", "ArrowTower.png", [=](Ref*) { if (onSelectBuilding) onSelectBuilding(3); });
 
-    auto water = MenuItemImage::create(
-        "WaterCollection.png",
-        "WaterCollection.png",
-        [=](Ref*) { if (onSelectBuilding) onSelectBuilding(2); }
-    );
-
-    auto barrack = MenuItemImage::create(
-        "ArrowTower.png",
-        "ArrowTower.png",
-        [=](Ref*) { if (onSelectBuilding) onSelectBuilding(3); }
-    );
-
-    auto menu = Menu::create(goldMine, water, barrack, nullptr);
+    auto menu = Menu::create(military, water, arrow, nullptr);
     menu->alignItemsHorizontallyWithPadding(50);
     menu->setPosition(Vec2(1024, 200));
     this->addChild(menu);
