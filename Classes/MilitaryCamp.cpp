@@ -4,8 +4,14 @@ USING_NS_CC;
 bool MilitaryCamp::init()
 {
     if (!Building::init()) return false;
-    level = 1;
+
     setTexture("MilitaryCamp.png");
+    level = 1;
+
+    maxHP = 150;
+    currentHP = maxHP;
+    updateHPBar();
+
     return true;
 }
 

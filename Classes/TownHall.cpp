@@ -4,8 +4,14 @@ USING_NS_CC;
 bool TownHall::init()
 {
     if (!Building::init()) return false;
-    level = 1;
+
     setTexture("TownHall1.png");
+    level = 1;
+
+    maxHP = 500;
+    currentHP = maxHP;
+    updateHPBar();
+
     return true;
 }
 

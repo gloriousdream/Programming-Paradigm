@@ -4,8 +4,14 @@ USING_NS_CC;
 bool ArrowTower::init()
 {
     if (!Building::init()) return false;
-    level = 1;
+
     setTexture("ArrowTower.png");
+    level = 1;
+
+    maxHP = 100;
+    currentHP = maxHP;
+    updateHPBar();
+
     return true;
 }
 

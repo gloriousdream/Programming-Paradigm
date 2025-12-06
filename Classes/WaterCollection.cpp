@@ -4,8 +4,14 @@ USING_NS_CC;
 bool WaterCollection::init()
 {
     if (!Building::init()) return false;
-    level = 1;
+
     setTexture("WaterCollection.png");
+    level = 1;
+
+    maxHP = 120;
+    currentHP = maxHP;
+    updateHPBar();
+
     return true;
 }
 
