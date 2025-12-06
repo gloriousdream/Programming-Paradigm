@@ -14,11 +14,24 @@ bool BuildMenu::init()
     auto bg = LayerColor::create(Color4B(0, 0, 0, 150));
     this->addChild(bg);
 
-    auto military = MenuItemImage::create("MilitaryCamp.png", "MilitaryCamp.png", [=](Ref*) { if (onSelectBuilding) onSelectBuilding(1); });
-    auto water = MenuItemImage::create("WaterCollection.png", "WaterCollection.png", [=](Ref*) { if (onSelectBuilding) onSelectBuilding(2); });
-    auto arrow = MenuItemImage::create("ArrowTower.png", "ArrowTower.png", [=](Ref*) { if (onSelectBuilding) onSelectBuilding(3); });
+    auto military = MenuItemImage::create(
+        "MilitaryCamp.png", "MilitaryCamp.png",
+        [=](Ref*) { if (onSelectBuilding) onSelectBuilding(1); }
+    );
+    auto water = MenuItemImage::create(
+        "WaterCollection.png", "WaterCollection.png",
+        [=](Ref*) { if (onSelectBuilding) onSelectBuilding(2); }
+    );
+    auto arrowTower = MenuItemImage::create(
+        "ArrowTower.png", "ArrowTower.png",
+        [=](Ref*) { if (onSelectBuilding) onSelectBuilding(3); }
+    );
+    auto townhall = MenuItemImage::create(
+        "TownHall1.png", "TownHall1.png",
+        [=](Ref*) { if (onSelectBuilding) onSelectBuilding(4); }
+    );
 
-    auto menu = Menu::create(military, water, arrow, nullptr);
+    auto menu = Menu::create(military, water, arrowTower, townhall, nullptr);
     menu->alignItemsHorizontallyWithPadding(50);
     menu->setPosition(Vec2(1024, 200));
     this->addChild(menu);

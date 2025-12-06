@@ -38,7 +38,7 @@ bool Soldiermenu::init()
         "boom_select.png",
         [=](Ref*) { if (onSelectSoldier) onSelectSoldier(4); }
     );
-    auto menu = Menu::create(gongjianshou,yemanren,juren,boomer ,nullptr);
+    auto menu = Menu::create(gongjianshou, yemanren, juren, boomer, nullptr);
     menu->alignItemsHorizontallyWithPadding(50);
     menu->setPosition(Vec2(1024, 200));
     this->addChild(menu);

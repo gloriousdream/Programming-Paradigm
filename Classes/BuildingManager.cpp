@@ -1,4 +1,4 @@
-#include "BuildingManager.h"
+﻿#include "BuildingManager.h"
 USING_NS_CC;
 
 static BuildingManager* _instance = nullptr;
@@ -16,23 +16,41 @@ BuildingManager::BuildingManager()
 }
 
 static const int TILE = 64;
-static const int BUILD = 128;
 
-static Vec2 snapToGrid(Vec2 pos)
+// 根据建筑类型返回格子大小
+int BuildingManager::getBuildingGridSize(int type)
+{
+    switch (type)
+    {
+        case 4: return 3; // TownHall 3x3
+        default: return 2; // 其他 2x2
+    }
+}
+
+// 将位置吸附到格子中心
+static Vec2 snapToGrid(Vec2 pos, int gridSize)
 {
     int col = pos.x / TILE;
     int row = pos.y / TILE;
-    return Vec2(col * TILE + TILE, row * TILE + TILE);
+
+    // 保证建筑左下角在格子内
+    float snappedX = col * TILE + TILE * (gridSize / 2.0f);
+    float snappedY = row * TILE + TILE * (gridSize / 2.0f);
+
+    return Vec2(snappedX, snappedY);
 }
 
-bool BuildingManager::canPlaceBuilding(Vec2 pos)
+// 检查是否可以放置建筑
+bool BuildingManager::canPlaceBuilding(Vec2 pos, int type)
 {
-    Vec2 p = snapToGrid(pos);
-    int col = (p.x - TILE) / TILE;
-    int row = (p.y - TILE) / TILE;
+    int size = getBuildingGridSize(type);
+    Vec2 p = snapToGrid(pos, size);
 
-    for (int dx = 0; dx < 2; dx++)
-        for (int dy = 0; dy < 2; dy++)
+    int col = (p.x - TILE * (size / 2)) / TILE;
+    int row = (p.y - TILE * (size / 2)) / TILE;
+
+    for (int dx = 0; dx < size; dx++)
+        for (int dy = 0; dy < size; dy++)
         {
             int c = col + dx;
             int r = row + dy;
@@ -42,22 +60,26 @@ bool BuildingManager::canPlaceBuilding(Vec2 pos)
     return true;
 }
 
-void BuildingManager::occupyGrid(Vec2 pos)
+// 占用格子
+void BuildingManager::occupyGrid(Vec2 pos, int type)
 {
-    Vec2 p = snapToGrid(pos);
-    int col = (p.x - TILE) / TILE;
-    int row = (p.y - TILE) / TILE;
+    int size = getBuildingGridSize(type);
+    Vec2 p = snapToGrid(pos, size);
 
-    for (int dx = 0; dx < 2; dx++)
-        for (int dy = 0; dy < 2; dy++)
+    int col = (p.x - TILE * (size / 2)) / TILE;
+    int row = (p.y - TILE * (size / 2)) / TILE;
+
+    for (int dx = 0; dx < size; dx++)
+        for (int dy = 0; dy < size; dy++)
             grid[col + dx][row + dy] = true;
 }
 
+// 创建建筑
 Building* BuildingManager::createBuilding(int type, Vec2 pos)
 {
-    if (!canPlaceBuilding(pos))
+    if (!canPlaceBuilding(pos, type))
     {
-        CCLOG("���ӱ�ռ��");
+        CCLOG("建筑放置失败：格子被占用");
         return nullptr;
     }
 
@@ -67,13 +89,16 @@ Building* BuildingManager::createBuilding(int type, Vec2 pos)
         case 1: building = MilitaryCamp::create(); break;
         case 2: building = WaterCollection::create(); break;
         case 3: building = ArrowTower::create(); break;
+        case 4: building = TownHall::create(); break;
         default: return nullptr;
     }
 
-    Vec2 p = snapToGrid(pos);
+    int size = getBuildingGridSize(type);
+    Vec2 p = snapToGrid(pos, size);
     building->setPosition(p);
-    building->setContentSize(Size(BUILD, BUILD));
-    occupyGrid(pos);
+    building->setContentSize(Size(TILE * size, TILE * size));
+
+    occupyGrid(pos, type);
 
     return building;
 }

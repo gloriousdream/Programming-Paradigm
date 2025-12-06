@@ -835,6 +835,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="..\Classes\ArrowTower.h" />
     <ClInclude Include="..\Classes\Building.h" />
     <ClInclude Include="..\Classes\MilitaryCamp.h" />
+    <ClInclude Include="..\Classes\TownHall.h" />
     <ClInclude Include="..\Classes\WaterCollection.h" />
     <ClInclude Include="D:\cocos_game\Classes\AppDelegate.h" />
     <ClInclude Include="D:\cocos_game\Classes\GameScene.h" />
@@ -848,6 +849,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="..\Classes\ArrowTower.cpp" />
     <ClCompile Include="..\Classes\Building.cpp" />
     <ClCompile Include="..\Classes\MilitaryCamp.cpp" />
+    <ClCompile Include="..\Classes\TownHall.cpp" />
     <ClCompile Include="..\Classes\WaterCollection.cpp" />
     <ClCompile Include="D:\cocos_game\Classes\AppDelegate.cpp" />
     <ClCompile Include="D:\cocos_game\Classes\GameScene.cpp" />

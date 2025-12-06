@@ -1,0 +1,14 @@
+#ifndef __TOWNHALL_H__
+#define __TOWNHALL_H__
+
+#include "Building.h"
+
+class TownHall : public Building
+{
+public:
+    virtual bool init() override;
+    CREATE_FUNC(TownHall);
+    virtual void upgrade() override;
+};
+
+#endif
