@@ -3,6 +3,7 @@
 
 #include "cocos2d.h"
 
+// 抽象基类：保留你最初的点击/血条逻辑
 class Building : public cocos2d::Sprite
 {
 public:
@@ -13,15 +14,20 @@ public:
     void takeDamage(int dmg);   // 受伤
     void updateHPBar();         // 更新血条显示
 
+    // 建造 / 升级 消耗（子类在 init 中赋值）
+    int buildCostGold = 0;
+    int buildCostHoly = 0;
+    int upgradeCostGold = 0;
+    int upgradeCostHoly = 0;
+
 protected:
     int level = 1;
-
     int maxHP = 100;
     int currentHP = 100;
 
     cocos2d::DrawNode* hpBar = nullptr;
 
-    void addTouchListener(); // 点击事件
+    void addTouchListener(); // 点击事件，发送 "BUILDING_CLICKED"
 };
 
 #endif

@@ -7,10 +7,15 @@ bool WaterCollection::init()
 
     setTexture("WaterCollection.png");
     level = 1;
-
     maxHP = 120;
     currentHP = maxHP;
     updateHPBar();
+
+    buildCostGold = 80;
+    buildCostHoly = 80;
+
+    upgradeCostGold = 40;
+    upgradeCostHoly = 40;
 
     return true;
 }
@@ -18,6 +23,14 @@ bool WaterCollection::init()
 void WaterCollection::upgrade()
 {
     level++;
-    if (level == 2) setTexture("WaterCollection.png");
-    else if (level == 3) setTexture("WaterCollection.png");
+    if (level == 2) {
+        setTexture("WaterCollection.png");
+        maxHP = 150;
+    }
+    else if (level == 3) {
+        setTexture("WaterCollection.png");
+        maxHP = 180;
+    }
+    currentHP = maxHP;
+    updateHPBar();
 }

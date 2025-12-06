@@ -2,6 +2,8 @@
 #define __BUILD_MENU_H__
 
 #include "cocos2d.h"
+#include <functional>
+
 class BuildMenu : public cocos2d::Layer
 {
 public:
@@ -10,7 +12,9 @@ public:
 
     virtual bool init();
     CREATE_FUNC(BuildMenu);
+
 private:
     void addBuildingIcon(const std::string& img, int type, float x, float y);
 };
+
 #endif

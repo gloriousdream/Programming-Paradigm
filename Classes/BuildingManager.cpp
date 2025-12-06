@@ -17,30 +17,29 @@ BuildingManager::BuildingManager()
 
 static const int TILE = 64;
 
-// 根据建筑类型返回格子大小
+// 返回建筑占用格子大小
 int BuildingManager::getBuildingGridSize(int type)
 {
     switch (type)
     {
         case 4: return 3; // TownHall 3x3
-        default: return 2; // 其他 2x2
+        default: return 2; // 其他建筑 2x2
     }
 }
 
-// 将位置吸附到格子中心
+// 吸附到网格中心
 static Vec2 snapToGrid(Vec2 pos, int gridSize)
 {
     int col = pos.x / TILE;
     int row = pos.y / TILE;
 
-    // 保证建筑左下角在格子内
     float snappedX = col * TILE + TILE * (gridSize / 2.0f);
     float snappedY = row * TILE + TILE * (gridSize / 2.0f);
 
     return Vec2(snappedX, snappedY);
 }
 
-// 检查是否可以放置建筑
+// 是否可放置
 bool BuildingManager::canPlaceBuilding(Vec2 pos, int type)
 {
     int size = getBuildingGridSize(type);
@@ -74,7 +73,7 @@ void BuildingManager::occupyGrid(Vec2 pos, int type)
             grid[col + dx][row + dy] = true;
 }
 
-// 创建建筑
+// 创建建筑（带类型和位置参数）
 Building* BuildingManager::createBuilding(int type, Vec2 pos)
 {
     if (!canPlaceBuilding(pos, type))
