@@ -103,21 +103,31 @@ void GameScene::showUpgradeButton(Sprite* building)
     if (auto existingMenu = this->getChildByName("UPGRADE_MENU"))
         existingMenu->removeFromParent();
 
+    Building* b = dynamic_cast<Building*>(building);
+    if (!b) return;
+
     Vec2 pos = building->getPosition() + Vec2(0, 100);
     auto upgradeNode = Node::create();
     upgradeNode->setName("UPGRADE_MENU");
     upgradeNode->setPosition(pos);
     this->addChild(upgradeNode, 999);
 
-    // 升级按钮
-    auto btn = MenuItemImage::create(
-        "UpgradeButton.png",
-        "UpgradeButton.png",
-        [=](Ref*) {
-            Building* b = dynamic_cast<Building*>(building);
-            if (b)
-            {
-                // 升级消耗（示例，可根据建筑类型和等级调整）
+    if (b->getLevel() >= 3)
+    {
+        // 已满级提示
+        auto fullLabel = Label::createWithTTF("已满级", "fonts/Marker Felt.ttf", 24);
+        fullLabel->setColor(Color3B::RED);
+        fullLabel->setAnchorPoint(Vec2(0.5f, 0.5f));
+        fullLabel->setPosition(Vec2::ZERO);
+        upgradeNode->addChild(fullLabel);
+    }
+    else
+    {
+        // 升级按钮
+        auto btn = MenuItemImage::create(
+            "UpgradeButton.png",
+            "UpgradeButton.png",
+            [=](Ref*) {
                 int requiredGold = 50;
                 int requiredHolyWater = 30;
 
@@ -132,40 +142,49 @@ void GameScene::showUpgradeButton(Sprite* building)
                 {
                     CCLOG("资源不足，无法升级");
                 }
+                upgradeNode->removeFromParent();
+                currentBuildingMenu = nullptr;
             }
-            upgradeNode->removeFromParent();
-            currentBuildingMenu = nullptr;
-        }
-    );
-    auto menu = Menu::create(btn, nullptr);
-    menu->setPosition(Vec2::ZERO);
-    upgradeNode->addChild(menu);
+        );
+        auto menu = Menu::create(btn, nullptr);
+        menu->setPosition(Vec2::ZERO);
+        upgradeNode->addChild(menu);
 
-    // 显示升级资源消耗
-    int requiredGold = 50;
-    int requiredHolyWater = 30;
-    auto goldLabelNode = Label::createWithTTF("G:" + std::to_string(requiredGold), "fonts/Marker Felt.ttf", 20);
-    goldLabelNode->setAnchorPoint(Vec2(0, 0.5f));
-    goldLabelNode->setPosition(Vec2(btn->getContentSize().width / 2 + 10, 0));
-    upgradeNode->addChild(goldLabelNode);
+        // 显示升级资源消耗
+        auto goldLabelNode = Label::createWithTTF("G:" + std::to_string(50), "fonts/Marker Felt.ttf", 20);
+        goldLabelNode->setAnchorPoint(Vec2(0, 0.5f));
+        goldLabelNode->setPosition(Vec2(btn->getContentSize().width / 2 + 10, 0));
+        upgradeNode->addChild(goldLabelNode);
 
-    auto waterLabelNode = Label::createWithTTF("H:" + std::to_string(requiredHolyWater), "fonts/Marker Felt.ttf", 20);
-    waterLabelNode->setAnchorPoint(Vec2(0, 0.5f));
-    waterLabelNode->setPosition(Vec2(btn->getContentSize().width / 2 + 10, -25));
-    upgradeNode->addChild(waterLabelNode);
+        auto waterLabelNode = Label::createWithTTF("H:" + std::to_string(30), "fonts/Marker Felt.ttf", 20);
+        waterLabelNode->setAnchorPoint(Vec2(0, 0.5f));
+        waterLabelNode->setPosition(Vec2(btn->getContentSize().width / 2 + 10, -25));
+        upgradeNode->addChild(waterLabelNode);
+    }
 }
+
 
 // 建造按钮
 void GameScene::onBuildButtonPressed()
 {
+    auto existingMenu = this->getChildByName("BUILD_MENU_NODE");
+    if (existingMenu)
+    {
+        existingMenu->removeFromParent();
+        return;
+    }
+
+    // 创建 BuildMenu
     auto menu = BuildMenu::createMenu();
+    menu->setName("BUILD_MENU_NODE"); // 直接给 BuildMenu 命名
     this->addChild(menu, 100);
 
     menu->onSelectBuilding = [menu, this](int type) {
-        enablePlaceMode(type, menu);
+        enablePlaceMode(type, menu); // 传 BuildMenu 对象，保证判断正确
         menu->removeFromParent();
         };
 }
+
 
 // 士兵按钮
 void GameScene::onSoldierpushed()

@@ -20,8 +20,8 @@ private:
     int selectedType = 0;
 
     // Íæ¼Ò×ÊÔ´
-    int gold = 200;
-    int holyWater = 100;
+    int gold = 1000;
+    int holyWater = 500;
 
     cocos2d::Label* goldLabel = nullptr;
     cocos2d::Label* waterLabel = nullptr;
