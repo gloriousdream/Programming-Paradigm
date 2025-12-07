@@ -1,6 +1,6 @@
 #include "SoldierManager.h"
 #include "cocos2d.h"
-
+#include "Barbarian.h"
 USING_NS_CC;
 
 static SoldierManager* _instance = nullptr;
@@ -21,7 +21,7 @@ SoldierManager* SoldierManager::getInstance()
 }
 
 static const int TILE = 64;     // 格子 64×64
-static const int Soldier = 64;   // 士兵 64*64
+static const int shibing = 64;   // 士兵 64*64
 
 // 将坐标吸附到格子(1*1格子的中心)
 static Vec2 snapToGrid(Vec2 pos)
@@ -34,26 +34,38 @@ static Vec2 snapToGrid(Vec2 pos)
 
     return Vec2(snappedX, snappedY);
 }
-Sprite* SoldierManager::createSoldier(int type, Vec2 pos)
+Soldier* SoldierManager::createSoldier(int type, Vec2 pos)
 {
-    Sprite* soldier = nullptr;
+    Soldier* soldier = nullptr;
 
     switch (type)
     {
-        case 1: soldier = Sprite::create("yemanren_select.png"); break;
-        case 2: soldier = Sprite::create("juren_select.png"); break;
-        case 3: soldier = Sprite::create("gongjianshou_select.png"); break;
-        case 4: soldier = Sprite::create("boom_select.png"); break;
+        case 1: // 野蛮人
+            soldier = Barbarian::create();
+            break;
+        case 2:
+            // soldier = Giant::create(); 
+            break;
+        case 3:
+            // soldier = Archer::create(); 
+            break;
+        case 4:
+            // soldier = Bomber::create(); 
+            break;
     }
 
-    if (!soldier)
+    if (soldier)
     {
-        CCLOG("? 建筑图片没找到");
-        return nullptr;
+        soldier->setPosition(pos);
+        // 设置出生点作为巡逻中心
+        soldier->setHomePosition(pos);
+        // 立即开始动作
+        soldier->actionWalk();
+    }
+    else
+    {
+        CCLOGERROR("Soldier type %d not implemented yet!", type);
     }
 
-    Vec2 p = snapToGrid(pos);
-    soldier->setPosition(p);
-    // 建筑放下成功后标记格子
     return soldier;
 }

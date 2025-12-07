@@ -1,4 +1,5 @@
 ﻿#include "BuildingManager.h"
+
 USING_NS_CC;
 
 static BuildingManager* _instance = nullptr;

@@ -1,13 +1,14 @@
 #pragma once
 #include "cocos2d.h"
 #include <vector>
-
+#include "Soldier.h"
+#include "Barbarian.h"
 class SoldierManager
 {
 public:
     static SoldierManager* getInstance();
 
-    cocos2d::Sprite* createSoldier(int type, cocos2d::Vec2 pos);
+    Soldier* createSoldier(int type, cocos2d::Vec2 pos);
 
 private:
     SoldierManager();

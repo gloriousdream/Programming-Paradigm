@@ -13,6 +13,11 @@ public:
     void onBuildingClicked(cocos2d::Sprite* building);
     void showUpgradeButton(cocos2d::Sprite* building);
     void updateResourceDisplay();
+    // [新增] 专门显示兵营的操作菜单（升级 + 造兵）
+    void showMilitaryOptions(cocos2d::Sprite* building);
+
+    void showTrainMenu(cocos2d::Sprite* building);
+    void showTrainAmountMenu(int soldierType);
 
 private:
     bool placeModebuild = false;
@@ -22,12 +27,15 @@ private:
     // 玩家资源
     int gold = 1000;
     int holyWater = 500;
+    int population = 0;
 
     cocos2d::Label* goldLabel = nullptr;
     cocos2d::Label* waterLabel = nullptr;
+    cocos2d::Label* populationLabel = nullptr;
 
     void onSoldierpushed();
     void onBuildButtonPressed();
+
     template<typename T>
     void enablePlaceMode(int type, T menu);
     void onMapClicked(cocos2d::Vec2 pos);

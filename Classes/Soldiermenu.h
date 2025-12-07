@@ -7,13 +7,14 @@ class Soldiermenu : public cocos2d::Layer
 public:
     static Soldiermenu* createMenu();
 
-    std::function<void(int)> onSelectSoldier;
-
+    // 修改回调：返回 (士兵类型, 训练数量)
+    std::function<void(int type, int amount)> onTrainSoldier;
     virtual bool init();
     CREATE_FUNC(Soldiermenu);
 
 private:
-    void addBuildingIcon(const std::string& img, int type, float x, float y);
+    // 辅助函数：构建单个士兵的控制单元
+    void createSoldierUnit(const std::string& imgName, int type, cocos2d::Vec2 pos);
 };
 #endif
 

@@ -4,9 +4,33 @@
 #include "Soldiermenu.h"
 #include "SoldierManager.h"
 #include "Building.h"
+// 在 GameScene.cpp 顶部 include 区域添加
+#include "MilitaryCamp.h"
 
 USING_NS_CC;
+// --- 在 GameScene.cpp 顶部添加配置 ---
 
+struct SoldierConfig
+{
+    std::string name;
+    int costGold;      // 金币消耗 (通常主要消耗圣水)
+    int costHolyWater; // 圣水消耗
+    int popSpace;      // 占用人口
+};
+
+// 辅助函数：获取兵种配置
+// Type: 1=野蛮人, 2=巨人, 3=弓箭手, 4=炸弹人
+static SoldierConfig getSoldierConfig(int type)
+{
+    switch (type)
+    {
+        case 1: return { "Barbarian", 0, 25, 1 };    // 便宜，占1人口
+        case 2: return { "Giant",     0, 500, 5 };   // 贵，肉盾，占5人口
+        case 3: return { "Archer",    0, 50, 1 };    // 远程，占1人口
+        case 4: return { "Bomber",    0, 100, 2 };   // 战术兵种，占2人口
+        default: return { "Unknown",   0, 0, 0 };
+    }
+}
 Scene* GameScene::createScene()
 {
     return GameScene::create();
@@ -29,7 +53,7 @@ bool GameScene::init()
     auto buildBtn = MenuItemImage::create("Building.png", "Building.png", CC_CALLBACK_0(GameScene::onBuildButtonPressed, this));
     auto soldierBtn = MenuItemImage::create("Soldier.png", "Soldier.png", CC_CALLBACK_0(GameScene::onSoldierpushed, this));
     auto menu = Menu::create(buildBtn, soldierBtn, nullptr);
-    menu->setPosition(origin.x + visibleSize.width - 120, origin.y + visibleSize.height / 2);
+    menu->setPosition(origin.x + visibleSize.width - 130, origin.y + visibleSize.height / 2);
     menu->alignItemsVerticallyWithPadding(50);
     this->addChild(menu, 10);
 
@@ -49,6 +73,18 @@ bool GameScene::init()
     waterLabel->setAnchorPoint(Vec2(0, 0.5f));
     waterLabel->setPosition(waterSprite->getPosition() + Vec2(20, 0));
     this->addChild(waterLabel, 10);
+
+    // 人口显示
+    auto popSprite = Sprite::create("Population.png");  // 你需要准备一张图
+    popSprite->setPosition(Vec2(origin.x + visibleSize.width - 100,
+        origin.y + visibleSize.height - 130));
+    this->addChild(popSprite, 10);
+
+    populationLabel = Label::createWithTTF(std::to_string(population),
+        "fonts/Marker Felt.ttf", 24);
+    populationLabel->setAnchorPoint(Vec2(0, 0.5f));
+    populationLabel->setPosition(popSprite->getPosition() + Vec2(20, 0));
+    this->addChild(populationLabel, 10);
 
     // 地图点击事件
     auto touchListener = EventListenerTouchOneByOne::create();
@@ -75,28 +111,211 @@ bool GameScene::init()
 // 刷新右上角资源显示
 void GameScene::updateResourceDisplay()
 {
-    goldLabel->setString(std::to_string(gold));
-    waterLabel->setString(std::to_string(holyWater));
-}
-
-// 点击建筑
-void GameScene::onBuildingClicked(Sprite* building)
-{
-    // 如果当前显示的升级菜单正是这个建筑，隐藏
-    if (currentBuildingMenu == building)
+    // 更新金币文字
+    if (goldLabel)
     {
-        auto menu = this->getChildByName("UPGRADE_MENU");
-        if (menu) menu->removeFromParent();
+        goldLabel->setString(std::to_string(gold));
+    }
+
+    // 更新圣水文字
+    if (waterLabel)
+    {
+        waterLabel->setString(std::to_string(holyWater));
+    }
+
+    // [新增] 更新人口文字
+    if (populationLabel)
+    {
+        // 显示格式：当前人口 / 上限 (假设100，或者你需要定义 maxPopulation 变量)
+        populationLabel->setString(std::to_string(population) + "/100");
+    }
+}
+void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
+{
+    Vec2 pos = building->getPosition();
+    Size buildingSize = building->getContentSize();
+
+    // 转换为 Building* 以便访问 upgradeCost 和 upgrade()
+    Building* targetBuilding = static_cast<Building*>(building);
+
+    // --- 1. 创建升级按钮 (左侧) ---
+    auto upgradeBtn = MenuItemImage::create(
+        "UpgradeButton.png", // 确保有这个图片，或者换成 Upgrade.png
+        "UpgradeButton.png",
+        [=](Ref* sender)
+        {
+            // 获取升级所需的资源
+            int goldCost = targetBuilding->upgradeCostGold;
+            int holyCost = targetBuilding->upgradeCostHoly;
+
+            // 检查资源是否足够
+            if (this->gold >= goldCost && this->holyWater >= holyCost)
+            {
+                // 1. 扣除资源
+                this->gold -= goldCost;
+                this->holyWater -= holyCost;
+
+                // 2. 执行建筑升级
+                targetBuilding->upgrade();
+
+                // 3. 刷新界面资源显示
+                this->updateResourceDisplay();
+
+                CCLOG("Upgrade Successful! Level: %d", targetBuilding->getLevel());
+            }
+            else
+            {
+                CCLOG("Not enough resources to upgrade!");
+                // 这里可选：加一个飘字提示 "资源不足"
+            }
+
+            // 无论成功失败，操作后关闭菜单
+            this->removeChildByTag(999);
+            this->currentBuildingMenu = nullptr;
+        }
+    );
+
+    // --- 2. 创建造兵按钮 (右侧) ---
+    auto trainBtn = MenuItemImage::create(
+        "Train.png",
+        "Train.png",
+        [=](Ref* sender)
+        {
+            // 打开造兵菜单
+            this->showTrainMenu(building);
+            // 移除当前操作菜单
+            this->removeChildByTag(999);
+            this->currentBuildingMenu = nullptr;
+        }
+    );
+
+    // --- 3. 组装菜单 ---
+    auto menu = Menu::create(upgradeBtn, trainBtn, nullptr);
+
+    // 设置位置：分别在建筑头顶的左右两侧
+    upgradeBtn->setPosition(Vec2(-50, buildingSize.height / 2 + 50));
+    trainBtn->setPosition(Vec2(50, buildingSize.height / 2 + 50));
+
+    menu->setPosition(pos);
+    menu->setTag(999);
+    this->addChild(menu, 100);
+
+    currentBuildingMenu = building;
+}
+void GameScene::onBuildingClicked(cocos2d::Sprite* building)
+{
+    // 1. 如果之前有打开的菜单，先移除（防止重叠）
+    this->removeChildByTag(999);
+
+    if (currentBuildingMenu)
+    {
+        // 如果你有其他清除逻辑放在这里
         currentBuildingMenu = nullptr;
+    }
+
+    // 2. 尝试将传入的 building 转换为 MilitaryCamp 指针
+    MilitaryCamp* camp = dynamic_cast<MilitaryCamp*>(building);
+
+    if (camp)
+    {
+        // 转换成功！说明点击的是兵营 -> 显示【升级】和【造兵】双按钮
+        showMilitaryOptions(building);
     }
     else
     {
-        currentBuildingMenu = building;
+        // 转换失败，说明是普通建筑 -> 只显示【升级】
         showUpgradeButton(building);
     }
 }
+void GameScene::showTrainMenu(cocos2d::Sprite* building)
+{
+    // 1. 创建全屏的造兵菜单 Layer
+    auto menu = Soldiermenu::createMenu();
 
-// 显示升级按钮和资源消耗
+    if (!menu)
+    {
+        CCLOGERROR("Failed to create Soldiermenu");
+        return;
+    }
+
+    // 2. 设置核心回调逻辑
+    // [=] 捕获当前类的指针 this 和 building 指针
+    menu->onTrainSoldier = [=](int soldierType, int amount)
+        {
+
+            // --- A. 数据校验与资源扣除 ---
+
+            // 获取配置
+            SoldierConfig config = getSoldierConfig(soldierType);
+
+            // 计算总价
+            int totalGoldCost = config.costGold * amount;
+            int totalWaterCost = config.costHolyWater * amount;
+            int totalPop = config.popSpace * amount;
+
+            // 检查资源是否足够
+            if (this->gold < totalGoldCost || this->holyWater < totalWaterCost)
+            {
+                CCLOG("Training Failed: Not enough resources!");
+                // 这里建议未来加一个浮动提示: "No Resources"
+                return;
+            }
+
+            // 检查人口限制 (假设上限100)
+            if (this->population + totalPop > 100)
+            {
+                CCLOG("Training Failed: Population limit reached!");
+                return;
+            }
+
+            // --- B. 执行交易 ---
+
+            this->gold -= totalGoldCost;
+            this->holyWater -= totalWaterCost;
+            this->population += totalPop;
+
+            // 刷新 UI 上的数字
+            this->updateResourceDisplay();
+
+
+            // --- C. 场景中生成实体 (你刚补充的部分) ---
+
+            // 获取兵营的中心位置
+            Vec2 campPos = building->getPosition();
+
+            for (int i = 0; i < amount; i++)
+            {
+                // 在兵营中心附近随机偏移 (-30 ~ +30 像素)
+                // 这样兵就不会全部重叠在一个点上
+                float offsetX = (rand() % 60) - 30;
+                float offsetY = (rand() % 60) - 30;
+                Vec2 spawnPos = campPos + Vec2(offsetX, offsetY);
+
+                // 调用单例管理器创建具体的士兵对象
+                auto soldier = SoldierManager::getInstance()->createSoldier(soldierType, spawnPos);
+
+                if (soldier)
+                {
+                    // 添加到场景
+                    // ZOrder 设为 15，确保它能盖住草地(0)和部分建筑(5-10)，如果有层级遮挡需求请动态调整
+                    this->addChild(soldier, 15);
+
+                    // 注意：如果你的 Soldier 类实现了我之前给的 actionWalk，
+                    // 它们在被 createSoldier 创建出来的那一刻就已经开始自动巡逻了。
+                }
+            }
+
+            CCLOG("Training Started: Created %d units of Type %d", amount, soldierType);
+        };
+
+    // 3. 将菜单层添加到当前场景的最上方 (Z=200 确保盖住所有东西)
+    this->addChild(menu, 200);
+}// [防报错补丁] 如果你还没有实现这个函数，请加上这个空实现，否则会编译失败
+void GameScene::showTrainAmountMenu(int soldierType)
+{
+    CCLOG("TODO: Show amount selection for soldier type %d", soldierType);
+    // 下一步我们将在这里实现滑动条或数量选择界面
+}
 void GameScene::showUpgradeButton(Sprite* building)
 {
     // 删除已有菜单
@@ -192,9 +411,18 @@ void GameScene::onSoldierpushed()
     auto menu = Soldiermenu::createMenu();
     this->addChild(menu, 100);
 
-    menu->onSelectSoldier = [menu, this](int type) {
-        enablePlaceMode(type, menu);
-        menu->removeFromParent();
+    // 修改这里的回调处理
+    menu->onTrainSoldier = [=](int soldierType, int amount)
+        {
+            CCLOG("Start Training: Type %d, Count %d", soldierType, amount);
+
+            // TODO: 这里写具体的造兵逻辑
+            // 1. 检查总金币是否足够 (amount * 单价)
+            // 2. 扣钱
+            // 3. 添加到造兵队列
+
+            // 示例：简单打印
+            // this->startTraining(soldierType, amount); 
         };
 }
 
