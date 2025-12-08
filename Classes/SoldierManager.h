@@ -3,6 +3,7 @@
 #include <vector>
 #include "Soldier.h"
 #include "Barbarian.h"
+#include "Giant.h"
 class SoldierManager
 {
 public:

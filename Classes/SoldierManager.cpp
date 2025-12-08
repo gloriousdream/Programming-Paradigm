@@ -1,6 +1,7 @@
 #include "SoldierManager.h"
 #include "cocos2d.h"
 #include "Barbarian.h"
+#include "Archer.h" 
 USING_NS_CC;
 
 static SoldierManager* _instance = nullptr;
@@ -44,10 +45,10 @@ Soldier* SoldierManager::createSoldier(int type, Vec2 pos)
             soldier = Barbarian::create();
             break;
         case 2:
-            // soldier = Giant::create(); 
+            soldier = Giant::create(); 
             break;
         case 3:
-            // soldier = Archer::create(); 
+            soldier = Archer::create(); 
             break;
         case 4:
             // soldier = Bomber::create(); 

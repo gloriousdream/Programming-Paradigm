@@ -25,7 +25,7 @@ static SoldierConfig getSoldierConfig(int type)
     switch (type)
     {
         case 1: return { "Barbarian", 0, 25, 1 };    // 便宜，占1人口
-        case 2: return { "Giant",     0, 500, 5 };   // 贵，肉盾，占5人口
+        case 2: return { "Giant",     0, 200, 5 };   // 贵，肉盾，占5人口
         case 3: return { "Archer",    0, 50, 1 };    // 远程，占1人口
         case 4: return { "Bomber",    0, 100, 2 };   // 战术兵种，占2人口
         default: return { "Unknown",   0, 0, 0 };
