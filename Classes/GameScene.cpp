@@ -408,6 +408,8 @@ void GameScene::onBuildButtonPressed()
 // 士兵按钮
 void GameScene::onSoldierpushed()
 {
+    // 1. 先关闭可能存在的建筑弹窗
+    closeCurrentPopup();
     auto menu = Soldiermenu::createMenu();
     this->addChild(menu, 100);
 
@@ -476,4 +478,13 @@ void GameScene::onMapClicked(Vec2 pos)
     placeModebuild = false;
     placeModesoldier = false;
     selectedType = 0;
+}
+// [新增] 实现关闭弹窗函数
+void GameScene::closeCurrentPopup()
+{
+    if (currentPopup)
+    {
+        currentPopup->removeFromParent();
+        currentPopup = nullptr;
+    }
 }
