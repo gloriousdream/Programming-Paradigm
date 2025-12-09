@@ -8,12 +8,10 @@
 
 USING_NS_CC;
 
-// --- 在 GameScene.cpp 顶部添加配置 ---
-
 struct SoldierConfig
 {
     std::string name;
-    int costGold;      // 金币消耗 (通常主要消耗圣水)
+    int costGold;      // 金币消耗
     int costHolyWater; // 圣水消耗
     int popSpace;      // 占用人口
 };
@@ -31,8 +29,7 @@ static SoldierConfig getSoldierConfig(int type)
     }
 }
 
-// 【新增】辅助函数：根据建筑类型获取图片路径（用于显示虚影）
-// 必须和你 BuildMenu 里的图片对应
+// 辅助函数：根据建筑类型获取图片路径（用于显示虚影）
 static std::string getBuildingTexturePath(int type)
 {
     switch (type) {
@@ -56,7 +53,7 @@ bool GameScene::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
-    // 1. 背景 (保留你的 GrassBackground.png)
+    // 1. 背景
     auto bg = Sprite::create("GrassBackground.png");
     if (bg) { // 加个判断防止空指针
         bg->setAnchorPoint(Vec2::ZERO);
@@ -127,8 +124,6 @@ bool GameScene::init()
             EventMouse* e = (EventMouse*)event;
             auto visibleSize = Director::getInstance()->getVisibleSize();
 
-            // =========== 调试区域：如果方向反了，请切换注释 ===========
-
              Vec2 temp = e->getLocationInView();
              Vec2 mousePos = Vec2(temp.x, temp.y); // 不做任何Y轴翻转，直接用
 
@@ -152,6 +147,42 @@ bool GameScene::init()
         });
     _eventDispatcher->addEventListenerWithSceneGraphPriority(buildingListener, this);
 
+    // 7. 监听收集圣水事件
+    auto collectListener = EventListenerCustom::create("COLLECT_WATER_EVENT", [=](EventCustom* event) {
+        // 获取传递过来的数量
+        int* amountPtr = static_cast<int*>(event->getUserData());
+        int amount = *amountPtr;
+
+        // 增加圣水 (holyWater) 
+        this->holyWater += amount;
+
+        // 刷新界面显示
+        this->updateResourceDisplay();
+
+        CCLOG("GameScene: HolyWater increased by %d, Total: %d", amount, this->holyWater);
+        });
+    _eventDispatcher->addEventListenerWithSceneGraphPriority(collectListener, this);
+
+    updateResourceDisplay();
+
+    // 8. 监听收集金币事件 
+    auto collectCoinListener = EventListenerCustom::create("COLLECT_COIN_EVENT", [=](EventCustom* event) {
+        // 获取传递过来的数量
+        int* amountPtr = static_cast<int*>(event->getUserData());
+        int amount = *amountPtr;
+
+        // 增加金币
+        this->gold += amount;
+
+        // 刷新界面显示
+        this->updateResourceDisplay();
+
+        CCLOG("GameScene: Gold increased by %d, Total: %d", amount, this->gold);
+        });
+    _eventDispatcher->addEventListenerWithSceneGraphPriority(collectCoinListener, this);
+
+    updateResourceDisplay();
+
     return true;
 }
 
@@ -169,7 +200,7 @@ void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
     Size buildingSize = building->getContentSize();
     Building* targetBuilding = static_cast<Building*>(building);
 
-    // --- 升级按钮 ---
+    // 升级按钮
     auto upgradeBtn = MenuItemImage::create(
         "UpgradeButton.png", "UpgradeButton.png",
         [=](Ref* sender) {
@@ -191,7 +222,7 @@ void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
         }
     );
 
-    // --- 造兵按钮 ---
+    // 造兵按钮
     auto trainBtn = MenuItemImage::create(
         "Train.png", "Train.png",
         [=](Ref* sender) {
@@ -303,11 +334,20 @@ void GameScene::showUpgradeButton(Sprite* building)
         menu->setPosition(Vec2::ZERO);
         upgradeNode->addChild(menu);
 
-        // 显示价格Label逻辑省略以节省篇幅，如需保留请复制原逻辑
+        // 显示升级资源消耗
+        auto goldLabelNode = Label::createWithTTF("G:" + std::to_string(50), "fonts/Marker Felt.ttf", 20);
+        goldLabelNode->setAnchorPoint(Vec2(0, 0.5f));
+        goldLabelNode->setPosition(Vec2(btn->getContentSize().width / 2 + 10, 0));
+        upgradeNode->addChild(goldLabelNode);
+
+        auto waterLabelNode = Label::createWithTTF("H:" + std::to_string(30), "fonts/Marker Felt.ttf", 20);
+        waterLabelNode->setAnchorPoint(Vec2(0, 0.5f));
+        waterLabelNode->setPosition(Vec2(btn->getContentSize().width / 2 + 10, -25));
+        upgradeNode->addChild(waterLabelNode);
     }
 }
 
-// --- 建造按钮 (点击打开菜单) ---
+// 建造按钮 (点击打开菜单)
 void GameScene::onBuildButtonPressed()
 {
     auto existingMenu = this->getChildByName("BUILD_MENU_NODE");
@@ -320,7 +360,7 @@ void GameScene::onBuildButtonPressed()
     menu->setName("BUILD_MENU_NODE");
     this->addChild(menu, 100);
 
-    // 【核心修改】点击菜单中的图标后
+    // 点击菜单中的图标后
     menu->onSelectBuilding = [menu, this](int type) {
 
         // 1. 设置状态
@@ -328,7 +368,7 @@ void GameScene::onBuildButtonPressed()
         this->placeModebuild = true;
         this->placeModesoldier = false;
 
-        // 2. 清除旧虚影（如果有）
+        // 2. 清除旧虚影
         if (this->ghostSprite) {
             this->ghostSprite->removeFromParent();
             this->ghostSprite = nullptr;
@@ -374,7 +414,7 @@ void GameScene::enablePlaceMode(int type, T menu)
     selectedType = type;
 }
 
-// --- 点击地图放置 (确认放置) ---
+// 点击地图放置 (确认放置) 
 void GameScene::onMapClicked(Vec2 pos)
 {
     if (!(placeModebuild || placeModesoldier)) return;
@@ -409,7 +449,7 @@ void GameScene::onMapClicked(Vec2 pos)
                 holyWater -= costHoly;
                 updateResourceDisplay();
 
-                // 【核心修改】放置成功后，移除虚影
+                // 放置成功后，移除虚影
                 if (ghostSprite) {
                     ghostSprite->removeFromParent();
                     ghostSprite = nullptr;
@@ -427,7 +467,7 @@ void GameScene::onMapClicked(Vec2 pos)
         }
     }
 
-    // 2. 士兵放置逻辑 (如需)
+    // 2. 士兵放置逻辑
     if (placeModesoldier)
     {
         auto soldier = SoldierManager::getInstance()->createSoldier(selectedType, snapPos);

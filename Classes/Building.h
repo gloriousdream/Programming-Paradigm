@@ -3,7 +3,7 @@
 
 #include "cocos2d.h"
 
-// 抽象基类：保留你最初的点击/血条逻辑
+// 抽象基类
 class Building : public cocos2d::Sprite
 {
 public:

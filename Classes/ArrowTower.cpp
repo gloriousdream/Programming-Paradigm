@@ -16,7 +16,7 @@ bool ArrowTower::init()
     buildCostGold = 120;
     buildCostHoly = 60;
     // 升级消耗：到2级 / 到3级（GameScene 会读取这些值）
-    upgradeCostGold = 60;  // 这里表示下一次升级的当前数值（we will interpret in GameScene）
+    upgradeCostGold = 60;  // 这里表示下一次升级的当前数值
     upgradeCostHoly = 30;
 
     return true;
@@ -37,5 +37,4 @@ void ArrowTower::upgrade()
     currentHP = maxHP;
     updateHPBar();
 
-    // update upgradeCost to next level (optional): we keep static per-level costs in GameScene logic
 }

@@ -10,7 +10,7 @@ public:
     // 初始化
     virtual bool init() override;
 
-    // [接口] 纯虚函数：每个兵种必须实现自己的移动逻辑
+    // 纯虚函数：每个兵种必须实现自己的移动逻辑
     virtual void actionWalk() = 0;
 
     // 设置初始巡逻中心点（通常是出生点）

@@ -9,8 +9,8 @@ bool Barbarian::init()
     // 1. 加载图集
     SpriteFrameCache::getInstance()->addSpriteFramesWithFile("barbarianwalk.plist");
 
-    // 2. [修改] 设置初始外观为 07 (静止帧)
-    // 假设默认先朝右看
+    // 2. 设置初始外观为 07 (静止帧)
+    // 默认先朝右看
     if (SpriteFrameCache::getInstance()->getSpriteFrameByName("barbarian_side_walk_07.png"))
     {
         this->setSpriteFrame("barbarian_side_walk_07.png");
@@ -34,7 +34,7 @@ Animate* Barbarian::createAnimate(const std::string& prefix, int frameCount)
 
     for (int i = 1; i <= frameCount; i++)
     {
-        // 拼接名字，注意 %02d 对应 01, 02... 08
+        // 拼接名字
         std::string name = StringUtils::format("%s_%02d.png", prefix.c_str(), i);
         auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
         if (frame)
@@ -43,20 +43,20 @@ Animate* Barbarian::createAnimate(const std::string& prefix, int frameCount)
         }
     }
 
-    // 0.1f 是每一帧的时间，8帧就是0.8秒走一步，比较自然
+    // 0.1f 是每一帧的时间，8帧就是0.8秒走一步
     auto animation = Animation::createWithSpriteFrames(frames, 0.1f);
     return Animate::create(animation);
 }
 
 void Barbarian::actionWalk()
 {
-    // --- 1. 计算随机目标点 ---
+    // 1. 计算随机目标点
     float radius = 150.0f;
     float dx = (rand() % (int)(radius * 2)) - radius;
     float dy = (rand() % (int)(radius * 2)) - radius;
     Vec2 targetPos = homePosition + Vec2(dx, dy);
 
-    // --- 2. 计算方向向量 ---
+    // 2. 计算方向向量
     Vec2 diff = targetPos - this->getPosition();
 
     // 如果距离太短（比如小于10像素），就不走了，重新随机
@@ -66,11 +66,11 @@ void Barbarian::actionWalk()
         return;
     }
 
-    // --- 3. 决定使用哪套动画 & 是否翻转 ---
+    // 3. 决定使用哪套动画 & 是否翻转
     std::string animPrefix = "";
     bool needFlipX = false;
 
-    // A. 判断左右翻转 (因为素材都是朝右的)
+    // 判断左右翻转 
     if (diff.x < 0)
     {
         needFlipX = true; // 目标在左边，翻转
@@ -81,8 +81,8 @@ void Barbarian::actionWalk()
     }
     this->setFlippedX(needFlipX);
 
-    // B. 判断是用 Side, Upper 还是 Under
-    // 我们用斜率来判断：如果纵向移动比横向明显，就用上下走，否则用侧着走
+    // 判断是用 Side, Upper 还是 Under
+    // 用斜率来判断：如果纵向移动比横向明显，就用上下走，否则用侧着走
     // 这里设定一个阈值，比如 tan(30度) 左右，或者简单判断 dy 和 dx 的绝对值
 
     if (diff.y > std::abs(diff.x) * 0.5f)
@@ -101,7 +101,7 @@ void Barbarian::actionWalk()
         animPrefix = "barbarian_side_walk";
     }
 
-    // --- 运行动画 (1-8 循环) ---
+    // 运行动画 (1-8 循环) 
     this->stopActionByTag(TAG_WALK_ACTION);
     Animate* anim = createAnimate(animPrefix, 8);
     if (anim)
@@ -111,7 +111,7 @@ void Barbarian::actionWalk()
         this->runAction(repeatAnim);
     }
 
-    // --- 运行位移 ---
+    // 运行位移 
     float speed = 60.0f;
     float duration = diff.length() / speed;
 
@@ -120,14 +120,14 @@ void Barbarian::actionWalk()
 
     auto move = MoveTo::create(duration, targetPos);
 
-    // [重点修改这里] 移动结束后的回调
+    // 移动结束后的回调
     auto finishMove = CallFunc::create([this, animPrefix]()
         {
 
-            // 1. 立即停止走路动画 (此时可能停在 03, 04 等任意一帧)
+            // 1. 立即停止走路动画
             this->stopActionByTag(TAG_WALK_ACTION);
 
-            // 2. [核心修改] 强制恢复到 07 帧 (静止状态)
+            // 2. 强制恢复到 07 帧 (静止状态)
             // 这样不管他刚刚是侧走、上走还是下走，都会停在对应的 "07" 姿势上
             std::string idleFrameName = StringUtils::format("%s_07.png", animPrefix.c_str());
             this->setSpriteFrame(idleFrameName);

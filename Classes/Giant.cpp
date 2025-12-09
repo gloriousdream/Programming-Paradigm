@@ -9,7 +9,7 @@ bool Giant::init()
     // 1. 加载巨人图集
     SpriteFrameCache::getInstance()->addSpriteFramesWithFile("giantwalk.plist");
 
-    // 2. [关键] 设置初始静止状态为 03 帧
+    // 2. 设置初始静止状态为 03 帧
     // 假设默认显示侧面
     if (SpriteFrameCache::getInstance()->getSpriteFrameByName("giant_side_walk_03.png"))
     {
@@ -34,7 +34,7 @@ Animate* Giant::createAnimate(const std::string& prefix, int frameCount)
     Vector<SpriteFrame*> frames;
     frames.reserve(frameCount);
 
-    // [关键] 循环 1 到 12
+    // 循环 1 到 12
     for (int i = 1; i <= frameCount; i++)
     {
         std::string name = StringUtils::format("%s_%02d.png", prefix.c_str(), i);
@@ -52,7 +52,7 @@ Animate* Giant::createAnimate(const std::string& prefix, int frameCount)
 
 void Giant::actionWalk()
 {
-    // --- 1. 计算随机目标点 (巨人巡逻范围小一点，懒得动) ---
+    // 1. 计算随机目标点 (巨人巡逻范围小一点，懒得动) 
     float radius = 120.0f;
     float dx = (rand() % (int)(radius * 2)) - radius;
     float dy = (rand() % (int)(radius * 2)) - radius;
@@ -67,7 +67,7 @@ void Giant::actionWalk()
         return;
     }
 
-    // --- 2. 决定方向与翻转 ---
+    // 2. 决定方向与翻转
     std::string animPrefix = "";
 
     // 左右翻转 (素材全部朝右)
@@ -94,10 +94,10 @@ void Giant::actionWalk()
         animPrefix = "giant_side_walk";
     }
 
-    // --- 3. 运行动画 (1-12 循环) ---
+    // 3. 运行动画 (1-12 循环) 
     this->stopActionByTag(TAG_WALK_ACTION);
 
-    Animate* anim = createAnimate(animPrefix, 12); // [关键] 12帧
+    Animate* anim = createAnimate(animPrefix, 12); // 12帧
     if (anim)
     {
         auto repeatAnim = RepeatForever::create(anim);
@@ -105,8 +105,8 @@ void Giant::actionWalk()
         this->runAction(repeatAnim);
     }
 
-    // --- 4. 运行位移 ---
-    // [关键] 巨人移动速度慢
+    // 4. 运行位移
+    // 巨人移动速度慢
     float speed = 35.0f;
     float duration = diff.length() / speed;
     if (duration < 0.1f) duration = 0.1f;
@@ -116,14 +116,14 @@ void Giant::actionWalk()
     auto finishMove = CallFunc::create([this, animPrefix]()
         {
 
-            // A. 停止动画
+            // 停止动画
             this->stopActionByTag(TAG_WALK_ACTION);
 
-            // B. [关键] 强制恢复到 03 帧 (静止状态)
+            // 强制恢复到 03 帧 (静止状态)
             std::string idleFrameName = StringUtils::format("%s_03.png", animPrefix.c_str());
             this->setSpriteFrame(idleFrameName);
 
-            // C. 休息 (巨人反应慢，休息久一点)
+            // 休息 (巨人反应慢，休息久一点)
             auto delay = DelayTime::create(2.0f + CCRANDOM_0_1() * 2.0f);
             auto next = CallFunc::create([this]()
                 {

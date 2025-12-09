@@ -53,13 +53,13 @@ Animate* Archer::createAnimate(const std::string& prefix, int frameCount)
 
 void Archer::actionWalk()
 {
-    // --- 1. 计算随机目标点 (巡逻半径可以比野蛮人稍大或稍小) ---
+    // 1. 计算随机目标点 (巡逻半径可以比野蛮人稍大或稍小) 
     float radius = 180.0f; // 弓箭手巡逻范围稍大
     float dx = (rand() % (int)(radius * 2)) - radius;
     float dy = (rand() % (int)(radius * 2)) - radius;
     Vec2 targetPos = homePosition + Vec2(dx, dy);
 
-    // --- 2. 计算方向向量 ---
+    // 2. 计算方向向量
     Vec2 diff = targetPos - this->getPosition();
 
     // 距离过短则重试
@@ -69,10 +69,10 @@ void Archer::actionWalk()
         return;
     }
 
-    // --- 3. 决定动画前缀 & 翻转 ---
+    // 3. 决定动画前缀 & 翻转
     std::string animPrefix = "";
 
-    // A. 左右翻转 (素材全部朝右)
+    // 左右翻转 (素材全部朝右)
     if (diff.x < 0)
     {
         this->setFlippedX(true);  // 往左走，翻转
@@ -82,7 +82,7 @@ void Archer::actionWalk()
         this->setFlippedX(false); // 往右走，正常
     }
 
-    // B. 上下侧面判断 (逻辑同野蛮人)
+    // 上下侧面判断 (逻辑同野蛮人)
     // 如果 Y 轴分量显著大于 X 轴的一半，则视为纵向移动
     if (diff.y > std::abs(diff.x) * 0.5f)
     {
@@ -97,7 +97,7 @@ void Archer::actionWalk()
         animPrefix = "archer_side_walk";  // 侧面
     }
 
-    // --- 4. 运行动画 ---
+    // 4. 运行动画
     this->stopActionByTag(TAG_WALK_ACTION);
 
     // 播放 01-08 的循环动画
@@ -109,7 +109,7 @@ void Archer::actionWalk()
         this->runAction(repeatAnim);
     }
 
-    // --- 5. 运行位移 ---
+    // 5. 运行位移
     float speed = 70.0f; // 弓箭手移动速度稍快
     float duration = diff.length() / speed;
     if (duration < 0.1f) duration = 0.1f;
@@ -123,7 +123,7 @@ void Archer::actionWalk()
             // 1. 停止动画
             this->stopActionByTag(TAG_WALK_ACTION);
 
-            // 2. [关键] 恢复到 07 帧 (静止状态)
+            // 2. 恢复到 07 帧 (静止状态)
             // 根据刚才行走的方向，选择对应的静止图
             std::string idleFrameName = StringUtils::format("%s_07.png", animPrefix.c_str());
             this->setSpriteFrame(idleFrameName);

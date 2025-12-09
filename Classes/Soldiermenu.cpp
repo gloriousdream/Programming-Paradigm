@@ -56,16 +56,16 @@ bool Soldiermenu::init()
     return true;
 }
 
-// 核心逻辑：创建单个士兵的操作面板
+// 创建单个士兵的操作面板
 void Soldiermenu::createSoldierUnit(const std::string& imgName, int type, Vec2 pos)
 {
-    // --- 1. 容器 Node ---
+    // 1. 容器 Node
     // 创建一个 Node 放在指定位置，所有元素都加在这个 Node 上
     auto container = Node::create();
     container->setPosition(pos);
     this->addChild(container);
 
-    // --- 2. 士兵图标 (静态图片) ---
+    // 2. 士兵图标 (静态图片) 
     auto sprite = Sprite::create(imgName);
     if (sprite)
     {
@@ -79,15 +79,14 @@ void Soldiermenu::createSoldierUnit(const std::string& imgName, int type, Vec2 p
         container->addChild(node);
     }
 
-    // --- 3. 第一阶段：[训练] 按钮 ---
-    // 这里使用 Label 作为按钮，你可以换成 MenuItemImage
+    // 第一阶段：[训练] 按钮 
     auto lblTrain = Label::createWithSystemFont("Train", "Arial", 24);
     lblTrain->setColor(Color3B::GREEN);
 
     auto btnTrain = MenuItemLabel::create(lblTrain);
     btnTrain->setPosition(Vec2(0, -60)); // 在图片下方
 
-    // --- 4. 第二阶段：[ - ] [数量] [ + ] [确定] ---
+    // 4. 第二阶段：[ - ] [数量] [ + ] [确定] 
     // 这部分初始是隐藏的
 
     // 数字显示 Label
@@ -144,7 +143,7 @@ void Soldiermenu::createSoldierUnit(const std::string& imgName, int type, Vec2 p
         });
     btnOk->setPosition(Vec2(0, -100));
 
-    // --- 5. 组装菜单与逻辑连接 ---
+    // 5. 组装菜单与逻辑连接
 
     // 将第二阶段的按钮放在一个 Menu 里，初始设为隐藏
     auto menuPhase2 = Menu::create(btnMinus, btnPlus, btnOk, nullptr);

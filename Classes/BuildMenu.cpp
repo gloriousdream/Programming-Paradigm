@@ -23,7 +23,7 @@ bool BuildMenu::init()
     touchListener->onTouchBegan = [](Touch*, Event*) { return true; };
     _eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, bg);
 
-    // 3. 定义建筑列表 (加入 CoinCollection)
+    // 3. 定义建筑列表 
     struct BuildingInfo {
         std::string img;
         int type;
@@ -36,7 +36,6 @@ bool BuildMenu::init()
         {"WaterCollection.png", 2, 40, 20},
         {"ArrowTower.png", 3, 70, 40},
         {"TownHall.png", 4, 150, 100},
-        // 【新增】第五个建筑
         {"CoinCollection.png", 5, 20, 80}
     };
 
@@ -44,12 +43,11 @@ bool BuildMenu::init()
 
     for (const auto& info : buildings)
     {
-        // 【关键】完全还原您的原始逻辑
         auto item = MenuItemImage::create(
             info.img,
             info.img,
             [=](Ref*) {
-                // 只发送通知，绝不自己删除自己！
+                // 发送通知
                 if (onSelectBuilding) {
                     onSelectBuilding(info.type);
                 }

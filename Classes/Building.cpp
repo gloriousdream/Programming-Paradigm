@@ -5,7 +5,7 @@ bool Building::init()
 {
     if (!Sprite::init()) return false;
 
-    // 添加点击事件（你原有逻辑）
+    // 添加点击事件
     addTouchListener();
 
     // 创建血条 DrawNode 并调用 update
@@ -25,7 +25,7 @@ void Building::addTouchListener()
         Vec2 localPos = this->convertToNodeSpace(t->getLocation());
         if (Rect(0, 0, getContentSize().width, getContentSize().height).containsPoint(localPos))
         {
-            // 保持你原有的事件链：点击建筑 -> 发送 BUILDING_CLICKED
+            // 点击建筑 -> 发送 BUILDING_CLICKED
             Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("BUILDING_CLICKED", this);
             return true;
         }

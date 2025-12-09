@@ -13,7 +13,7 @@ public:
     void onBuildingClicked(cocos2d::Sprite* building);
     void showUpgradeButton(cocos2d::Sprite* building);
     void updateResourceDisplay();
-    // [新增] 专门显示兵营的操作菜单（升级 + 造兵）
+    // 专门显示兵营的操作菜单（升级 + 造兵）
     void showMilitaryOptions(cocos2d::Sprite* building);
 
     void showTrainMenu(cocos2d::Sprite* building);
@@ -23,12 +23,13 @@ private:
     bool placeModebuild = false;
     bool placeModesoldier = false;
     int selectedType = 0;
-    // [新增] 用于记录当前打开的弹窗（升级菜单、造兵菜单等）
+
+    // 用于记录当前打开的弹窗（升级菜单、造兵菜单等）
     cocos2d::Node* currentPopup = nullptr;
 
     cocos2d::Sprite* ghostSprite = nullptr;
 
-    // [新增] 关闭当前弹窗的辅助函数
+    // 关闭当前弹窗的辅助函数
     void closeCurrentPopup();
 
     // 玩家资源
