@@ -7,6 +7,7 @@
 #include "WaterCollection.h"
 #include "ArrowTower.h"
 #include "TownHall.h"
+#include "CoinCollection.h"
 
 class BuildingManager
 {

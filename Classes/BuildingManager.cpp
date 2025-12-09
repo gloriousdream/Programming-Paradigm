@@ -90,6 +90,7 @@ Building* BuildingManager::createBuilding(int type, Vec2 pos)
         case 2: building = WaterCollection::create(); break;
         case 3: building = ArrowTower::create(); break;
         case 4: building = TownHall::create(); break;
+        case 5: building = CoinCollection::create(); break;
         default: return nullptr;
     }
 

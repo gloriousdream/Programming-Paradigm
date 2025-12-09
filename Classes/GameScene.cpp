@@ -4,7 +4,6 @@
 #include "Soldiermenu.h"
 #include "SoldierManager.h"
 #include "Building.h"
-// 在 GameScene.cpp 顶部 include 区域添加
 #include "MilitaryCamp.h"
 
 USING_NS_CC;
@@ -442,30 +441,41 @@ void GameScene::onMapClicked(Vec2 pos)
 {
     if (!(placeModebuild || placeModesoldier)) return;
 
+    // 计算 snapPos 
     int gx = pos.x / 64;
     int gy = pos.y / 64;
     Vec2 snapPos(gx * 64 + 32, gy * 64 + 32);
 
     if (placeModebuild)
     {
-        // 建造资源消耗
-        int costGold = 50;
-        int costHolyWater = 30;
+        // 根据 selectedType 确定消耗
+        int costGold = 0;
+        int costHoly = 0;
 
-        if (gold >= costGold && holyWater >= costHolyWater)
+        switch (selectedType) {
+            case 1: costGold = 50; costHoly = 30; break; // MilitaryCamp
+            case 2: costGold = 40; costHoly = 20; break; // WaterCollection
+            case 3: costGold = 70; costHoly = 40; break; // ArrowTower
+            case 4: costGold = 150; costHoly = 100; break; // TownHall
+            case 5: costGold = 20; costHoly = 80; break; // CoinCollection
+        }
+
+        if (gold >= costGold && holyWater >= costHoly)
         {
             auto building = BuildingManager::getInstance()->createBuilding(selectedType, snapPos);
             if (building)
             {
                 this->addChild(building, 5);
                 gold -= costGold;
-                holyWater -= costHolyWater;
+                holyWater -= costHoly;
                 updateResourceDisplay();
+                // 建造成功后，是否要关闭放置模式取决于您的设计，如果不希望连续建造，可以加：
+                // placeModebuild = false; 
             }
         }
         else
         {
-            CCLOG("资源不足，无法建造");
+            CCLOG("资源不足");
         }
     }
 

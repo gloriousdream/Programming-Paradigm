@@ -1,6 +1,6 @@
 ^D:\COCOS_GAME\BUILD\CMAKEFILES\EFA69864CF139B224F83127990CBA897\GENERATE.STAMP.RULE
 setlocal
-D:\c++\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe -SD:/cocos_game -BD:/cocos_game/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/cocos_game/build/cocos_test.sln
+D:\cmake\bin\cmake.exe -SD:/cocos_game -BD:/cocos_game/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/cocos_game/build/cocos_test.sln
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
