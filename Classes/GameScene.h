@@ -24,6 +24,9 @@ private:
     bool placeModesoldier = false;
     int selectedType = 0;
 
+    // 当前显示升级菜单的建筑
+    cocos2d::Sprite* currentBuildingMenu = nullptr;
+
     // 用于记录当前打开的弹窗（升级菜单、造兵菜单等）
     cocos2d::Node* currentPopup = nullptr;
 
@@ -48,8 +51,6 @@ private:
     void enablePlaceMode(int type, T menu);
     void onMapClicked(cocos2d::Vec2 pos);
 
-    // 当前显示升级菜单的建筑
-    cocos2d::Sprite* currentBuildingMenu = nullptr;
 };
 
 #endif

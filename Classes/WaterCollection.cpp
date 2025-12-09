@@ -80,7 +80,12 @@ void WaterCollection::onCollect()
 {
     if (!isReadyToCollect) return;
 
-    CCLOG("Collected 5 HolyWater!");
+    // 根据等级计算产出数量
+    // 1级=5, 2级=10, 3级=15
+    int amount = this->level * 5;
+    // ------------------------------------
+
+    CCLOG("Collected %d HolyWater (Level %d)!", amount, this->level);
 
     // 1. 隐藏图标
     if (rewardIcon) {
@@ -89,10 +94,8 @@ void WaterCollection::onCollect()
     isReadyToCollect = false;
 
     // 2. 发送自定义事件给 GameScene 加圣水
-    // 【修改点】名字改为 COLLECT_WATER_EVENT
-    int amount = 5;
     EventCustom event("COLLECT_WATER_EVENT");
-    event.setUserData(&amount);
+    event.setUserData(&amount); // 发送计算好的数量
     _eventDispatcher->dispatchEvent(&event);
 
     // 3. 收集后，等待 10 秒再次生成

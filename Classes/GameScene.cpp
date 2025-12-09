@@ -38,6 +38,7 @@ static std::string getBuildingTexturePath(int type)
         case 3: return "ArrowTower.png";
         case 4: return "TownHall.png";
         case 5: return "CoinCollection.png";
+        default: return "CloseNormal.png";
     }
 }
 
@@ -55,7 +56,7 @@ bool GameScene::init()
 
     // 1. 背景
     auto bg = Sprite::create("GrassBackground.png");
-    if (bg) { // 加个判断防止空指针
+    if (bg) {
         bg->setAnchorPoint(Vec2::ZERO);
         bg->setPosition(origin);
         this->addChild(bg, 0);
@@ -101,16 +102,14 @@ bool GameScene::init()
     // 4. 地图点击事件 (用于确认放置)
     auto touchListener = EventListenerTouchOneByOne::create();
     touchListener->onTouchBegan = [=](Touch* t, Event* e) {
-        // 如果处于建造模式或造兵模式，且点击了地图
         if (placeModebuild || placeModesoldier)
         {
             onMapClicked(t->getLocation());
-            return true; // 吞噬事件
+            return true;
         }
-
-        // 点击空白处关闭弹窗
         if (currentPopup) {
-            // closeCurrentPopup(); // 可选：如果你想点空地关闭菜单
+            // 可选：点击空地关闭菜单
+            // closeCurrentPopup();
         }
         return false;
         };
@@ -122,12 +121,11 @@ bool GameScene::init()
         if (placeModebuild && ghostSprite)
         {
             EventMouse* e = (EventMouse*)event;
-            auto visibleSize = Director::getInstance()->getVisibleSize();
+            // 直接使用 getLocationInView 即可（根据你的反馈不需要翻转）
+            Vec2 temp = e->getLocationInView();
+            Vec2 mousePos = Vec2(temp.x, temp.y);
 
-             Vec2 temp = e->getLocationInView();
-             Vec2 mousePos = Vec2(temp.x, temp.y); // 不做任何Y轴翻转，直接用
-
-            // 网格吸附计算 (保持不变)
+            // 网格吸附计算
             int gx = mousePos.x / 64;
             int gy = mousePos.y / 64;
             Vec2 snapPos(gx * 64 + 32, gy * 64 + 32);
@@ -139,8 +137,7 @@ bool GameScene::init()
 
     // 6. 建筑点击事件
     auto buildingListener = EventListenerCustom::create("BUILDING_CLICKED", [=](EventCustom* event) {
-        // 如果正在放置建筑，禁止点击其他建筑
-        if (placeModebuild) return;
+        if (placeModebuild) return; // 建造模式下不响应
 
         Sprite* building = (Sprite*)event->getUserData();
         onBuildingClicked(building);
@@ -149,35 +146,21 @@ bool GameScene::init()
 
     // 7. 监听收集圣水事件
     auto collectListener = EventListenerCustom::create("COLLECT_WATER_EVENT", [=](EventCustom* event) {
-        // 获取传递过来的数量
         int* amountPtr = static_cast<int*>(event->getUserData());
         int amount = *amountPtr;
-
-        // 增加圣水 (holyWater) 
         this->holyWater += amount;
-
-        // 刷新界面显示
         this->updateResourceDisplay();
-
-        CCLOG("GameScene: HolyWater increased by %d, Total: %d", amount, this->holyWater);
+        CCLOG("GameScene: HolyWater increased by %d", amount);
         });
     _eventDispatcher->addEventListenerWithSceneGraphPriority(collectListener, this);
 
-    updateResourceDisplay();
-
-    // 8. 监听收集金币事件 
+    // 8. 监听收集金币事件
     auto collectCoinListener = EventListenerCustom::create("COLLECT_COIN_EVENT", [=](EventCustom* event) {
-        // 获取传递过来的数量
         int* amountPtr = static_cast<int*>(event->getUserData());
         int amount = *amountPtr;
-
-        // 增加金币
         this->gold += amount;
-
-        // 刷新界面显示
         this->updateResourceDisplay();
-
-        CCLOG("GameScene: Gold increased by %d, Total: %d", amount, this->gold);
+        CCLOG("GameScene: Gold increased by %d", amount);
         });
     _eventDispatcher->addEventListenerWithSceneGraphPriority(collectCoinListener, this);
 
@@ -186,7 +169,6 @@ bool GameScene::init()
     return true;
 }
 
-// 刷新右上角资源显示
 void GameScene::updateResourceDisplay()
 {
     if (goldLabel) goldLabel->setString(std::to_string(gold));
@@ -194,13 +176,30 @@ void GameScene::updateResourceDisplay()
     if (populationLabel) populationLabel->setString(std::to_string(population) + "/100");
 }
 
+// 显示兵营菜单（升级 + 造兵）
 void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
 {
+    // 获取建筑数据
+    Building* targetBuilding = static_cast<Building*>(building);
     Vec2 pos = building->getPosition();
     Size buildingSize = building->getContentSize();
-    Building* targetBuilding = static_cast<Building*>(building);
 
-    // 升级按钮
+    // 1. 创建一个容器 Node，用于包裹菜单和文字
+    auto container = Node::create();
+    container->setPosition(pos);
+    container->setTag(999); // 统一 Tag，方便清除
+    this->addChild(container, 100);
+
+    // --- 【新增】显示等级 Label ---
+    std::string lvStr = "Lv." + std::to_string(targetBuilding->getLevel());
+    auto lvLabel = Label::createWithTTF(lvStr, "fonts/Marker Felt.ttf", 24);
+    lvLabel->setColor(Color3B::YELLOW);
+    // 放在建筑上方较高处，避免遮挡按钮
+    lvLabel->setPosition(Vec2(0, buildingSize.height / 2 + 100));
+    container->addChild(lvLabel);
+    // ----------------------------
+
+    // 2. 升级按钮
     auto upgradeBtn = MenuItemImage::create(
         "UpgradeButton.png", "UpgradeButton.png",
         [=](Ref* sender) {
@@ -217,12 +216,14 @@ void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
             else {
                 CCLOG("Not enough resources!");
             }
+            // 关闭菜单
             this->removeChildByTag(999);
             this->currentBuildingMenu = nullptr;
         }
     );
+    upgradeBtn->setPosition(Vec2(-50, buildingSize.height / 2 + 50));
 
-    // 造兵按钮
+    // 3. 造兵按钮
     auto trainBtn = MenuItemImage::create(
         "Train.png", "Train.png",
         [=](Ref* sender) {
@@ -231,21 +232,40 @@ void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
             this->currentBuildingMenu = nullptr;
         }
     );
-
-    auto menu = Menu::create(upgradeBtn, trainBtn, nullptr);
-    upgradeBtn->setPosition(Vec2(-50, buildingSize.height / 2 + 50));
     trainBtn->setPosition(Vec2(50, buildingSize.height / 2 + 50));
-    menu->setPosition(pos);
-    menu->setTag(999);
-    this->addChild(menu, 100);
+
+    // 4. 创建菜单并加入容器
+    auto menu = Menu::create(upgradeBtn, trainBtn, nullptr);
+    menu->setPosition(Vec2::ZERO); // 相对容器原点
+    container->addChild(menu);
+
     currentBuildingMenu = building;
 }
 
+// 统一处理建筑点击事件
 void GameScene::onBuildingClicked(cocos2d::Sprite* building)
 {
-    this->removeChildByTag(999);
-    if (currentBuildingMenu) currentBuildingMenu = nullptr;
+    // 1. 判断逻辑：点击的是否是当前已经打开菜单的那个建筑？
+    bool isSameBuilding = (currentBuildingMenu == building);
 
+    // 2. 无论点击的是谁，先清理掉屏幕上现有的菜单
+    this->removeChildByTag(999);
+
+    // 双重保险：如果有遗留的 Name 节点也移除
+    if (auto node = this->getChildByName("UPGRADE_MENU")) {
+        node->removeFromParent();
+    }
+
+    // 3. 重置当前选中状态
+    currentBuildingMenu = nullptr;
+
+    // 4. 如果是第二次点击同一个建筑，因为上面已经移除了菜单，
+    //    这里直接返回，不再执行下面的“显示菜单”逻辑，从而达到“隐藏”的效果。
+    if (isSameBuilding) {
+        return;
+    }
+
+    // 5. 如果是新建筑，则显示对应的菜单
     MilitaryCamp* camp = dynamic_cast<MilitaryCamp*>(building);
     if (camp) {
         showMilitaryOptions(building);
@@ -297,10 +317,13 @@ void GameScene::showTrainAmountMenu(int soldierType)
     CCLOG("TODO: Show amount selection for soldier type %d", soldierType);
 }
 
+// 显示普通建筑升级菜单
 void GameScene::showUpgradeButton(Sprite* building)
 {
+    // 移除旧菜单 
     if (auto existingMenu = this->getChildByName("UPGRADE_MENU"))
         existingMenu->removeFromParent();
+    this->removeChildByTag(999);
 
     Building* b = dynamic_cast<Building*>(building);
     if (!b) return;
@@ -308,8 +331,16 @@ void GameScene::showUpgradeButton(Sprite* building)
     Vec2 pos = building->getPosition() + Vec2(0, 100);
     auto upgradeNode = Node::create();
     upgradeNode->setName("UPGRADE_MENU");
+    upgradeNode->setTag(999); // 统一 Tag
     upgradeNode->setPosition(pos);
     this->addChild(upgradeNode, 999);
+
+    // 显示等级 Label 
+    std::string lvStr = "Lv." + std::to_string(b->getLevel());
+    auto lvLabel = Label::createWithTTF(lvStr, "fonts/Marker Felt.ttf", 24);
+    lvLabel->setColor(Color3B::YELLOW);
+    lvLabel->setPosition(Vec2(0, 50)); // 显示在菜单上方
+    upgradeNode->addChild(lvLabel);
 
     if (b->getLevel() >= 3) {
         auto fullLabel = Label::createWithTTF("已满级", "fonts/Marker Felt.ttf", 24);
@@ -317,15 +348,26 @@ void GameScene::showUpgradeButton(Sprite* building)
         upgradeNode->addChild(fullLabel);
     }
     else {
+        // 创建升级按钮 
         auto btn = MenuItemImage::create(
             "UpgradeButton.png", "UpgradeButton.png",
             [=](Ref*) {
-                int reqG = 50; int reqW = 30; // 简化的数值
+                // 直接从建筑对象中读取当前等级对应的升级消耗
+                int reqG = b->upgradeCostGold;
+                int reqW = b->upgradeCostHoly;
+
                 if (gold >= reqG && holyWater >= reqW) {
-                    gold -= reqG; holyWater -= reqW;
+                    gold -= reqG;
+                    holyWater -= reqW;
                     updateResourceDisplay();
                     b->upgrade();
+                    CCLOG("升级成功！");
                 }
+                else {
+                    CCLOG("资源不足，无法升级！需要 G:%d W:%d", reqG, reqW);
+                }
+
+                // 点击后关闭菜单
                 upgradeNode->removeFromParent();
                 currentBuildingMenu = nullptr;
             }
@@ -334,20 +376,23 @@ void GameScene::showUpgradeButton(Sprite* building)
         menu->setPosition(Vec2::ZERO);
         upgradeNode->addChild(menu);
 
-        // 显示升级资源消耗
-        auto goldLabelNode = Label::createWithTTF("G:" + std::to_string(50), "fonts/Marker Felt.ttf", 20);
+        // 显示动态的升级资源消耗文字 
+        std::string costGStr = "G:" + std::to_string(b->upgradeCostGold);
+        auto goldLabelNode = Label::createWithTTF(costGStr, "fonts/Marker Felt.ttf", 20);
         goldLabelNode->setAnchorPoint(Vec2(0, 0.5f));
         goldLabelNode->setPosition(Vec2(btn->getContentSize().width / 2 + 10, 0));
         upgradeNode->addChild(goldLabelNode);
 
-        auto waterLabelNode = Label::createWithTTF("H:" + std::to_string(30), "fonts/Marker Felt.ttf", 20);
+        // 使用 b->upgradeCostHoly
+        std::string costWStr = "H:" + std::to_string(b->upgradeCostHoly);
+        auto waterLabelNode = Label::createWithTTF(costWStr, "fonts/Marker Felt.ttf", 20);
         waterLabelNode->setAnchorPoint(Vec2(0, 0.5f));
         waterLabelNode->setPosition(Vec2(btn->getContentSize().width / 2 + 10, -25));
         upgradeNode->addChild(waterLabelNode);
     }
+    currentBuildingMenu = building;
 }
 
-// 建造按钮 (点击打开菜单)
 void GameScene::onBuildButtonPressed()
 {
     auto existingMenu = this->getChildByName("BUILD_MENU_NODE");
@@ -360,39 +405,30 @@ void GameScene::onBuildButtonPressed()
     menu->setName("BUILD_MENU_NODE");
     this->addChild(menu, 100);
 
-    // 点击菜单中的图标后
     menu->onSelectBuilding = [menu, this](int type) {
-
-        // 1. 设置状态
         this->selectedType = type;
         this->placeModebuild = true;
         this->placeModesoldier = false;
 
-        // 2. 清除旧虚影
         if (this->ghostSprite) {
             this->ghostSprite->removeFromParent();
             this->ghostSprite = nullptr;
         }
 
-        // 3. 创建新虚影 (Semi-transparent Ghost)
         std::string imgPath = getBuildingTexturePath(type);
         this->ghostSprite = Sprite::create(imgPath);
         if (this->ghostSprite) {
-            this->ghostSprite->setOpacity(128); // 50%透明度
-            // 初始位置设在屏幕中心，之后会随鼠标移动
+            this->ghostSprite->setOpacity(128);
             auto winSize = Director::getInstance()->getWinSize();
             this->ghostSprite->setPosition(winSize.width / 2, winSize.height / 2);
-            this->addChild(this->ghostSprite, 1000); // 放在最上层
+            this->addChild(this->ghostSprite, 1000);
         }
 
         CCLOG("已选择建筑 %d, 进入放置模式", type);
-
-        // 4. 关闭菜单
         menu->removeFromParent();
         };
 }
 
-// 士兵按钮
 void GameScene::onSoldierpushed()
 {
     closeCurrentPopup();
@@ -400,12 +436,10 @@ void GameScene::onSoldierpushed()
     this->addChild(menu, 100);
 
     menu->onTrainSoldier = [=](int soldierType, int amount) {
-        // 这里只是打印，具体逻辑见 showTrainMenu
         CCLOG("Start Training: Type %d, Count %d", soldierType, amount);
         };
 }
 
-// 启用放置模式 (此函数现在被 onBuildButtonPressed 的 lambda 替代，保留以防兼容)
 template<typename T>
 void GameScene::enablePlaceMode(int type, T menu)
 {
@@ -414,7 +448,7 @@ void GameScene::enablePlaceMode(int type, T menu)
     selectedType = type;
 }
 
-// 点击地图放置 (确认放置) 
+// 点击地图放置 (确认放置)
 void GameScene::onMapClicked(Vec2 pos)
 {
     if (!(placeModebuild || placeModesoldier)) return;
@@ -449,7 +483,7 @@ void GameScene::onMapClicked(Vec2 pos)
                 holyWater -= costHoly;
                 updateResourceDisplay();
 
-                // 放置成功后，移除虚影
+                // 放置成功，移除虚影
                 if (ghostSprite) {
                     ghostSprite->removeFromParent();
                     ghostSprite = nullptr;
@@ -460,10 +494,19 @@ void GameScene::onMapClicked(Vec2 pos)
             }
             else {
                 CCLOG("放置失败：位置已被占用");
+                // 可选：位置被占用时是否也要取消？通常RTS游戏位置占用不会取消，允许玩家换个地方点
+                // 如果你想位置占用也取消，就把下面的清除代码复制到这里
             }
         }
         else {
             CCLOG("资源不足");
+
+            // 资源不足时，移除虚影并退出放置模式 
+            if (ghostSprite) {
+                ghostSprite->removeFromParent();
+                ghostSprite = nullptr;
+            }
+            placeModebuild = false;
         }
     }
 
