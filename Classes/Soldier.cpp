@@ -5,6 +5,11 @@ USING_NS_CC;
 bool Soldier::init()
 {
     if (!Sprite::init()) return false;
+
+    //  默认活动区域为全屏 (防止没设置区域时兵不动或崩溃)
+    auto visibleSize = Director::getInstance()->getVisibleSize();
+    _moveArea = Rect(0, 0, visibleSize.width, visibleSize.height);
+
     return true;
 }
 
@@ -13,36 +18,19 @@ void Soldier::setHomePosition(Vec2 pos)
     this->homePosition = pos;
 }
 
-void Soldier::executeRandomWalk(float radius)
+void Soldier::setMoveArea(const cocos2d::Rect& area)
 {
-    // 1. 在半径范围内随机找一个目标点
-    float dx = (rand() % (int)(radius * 2)) - radius; // -radius 到 +radius
-    float dy = (rand() % (int)(radius * 2)) - radius;
+    this->_moveArea = area;
+}
 
-    Vec2 targetPos = homePosition + Vec2(dx, dy);
+// 在矩形内随机取一个坐标
+Vec2 Soldier::getRandomPointInArea()
+{
+    // 在 [origin.x, origin.x + width] 之间随机
+    float x = _moveArea.origin.x + CCRANDOM_0_1() * _moveArea.size.width;
 
-    // 2. 简单的朝向翻转 (如果往左走就翻转)
-    if (targetPos.x < this->getPositionX())
-    {
-        this->setFlippedX(false); // 假设原图朝左，或者根据原图调整
-    }
-    else
-    {
-        this->setFlippedX(true);
-    }
+    // 在 [origin.y, origin.y + height] 之间随机
+    float y = _moveArea.origin.y + CCRANDOM_0_1() * _moveArea.size.height;
 
-    // 3. 计算距离和时间 (假设速度恒定)
-    float distance = this->getPosition().distance(targetPos);
-    float speed = 50.0f; // 像素/秒
-    float duration = distance / speed;
-
-    // 4. 创建动作序列：移动 -> 停顿 -> 再走
-    auto move = MoveTo::create(duration, targetPos);
-    auto delay = DelayTime::create(1.0f + CCRANDOM_0_1() * 2.0f); // 停1~3秒
-    auto nextWalk = CallFunc::create([this]()
-        {
-            this->actionWalk(); // 递归调用子类的接口
-        });
-
-    this->runAction(Sequence::create(move, delay, nextWalk, nullptr));
+    return Vec2(x, y);
 }

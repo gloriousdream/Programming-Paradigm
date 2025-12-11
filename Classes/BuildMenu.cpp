@@ -71,5 +71,14 @@ bool BuildMenu::init()
     menu->alignItemsHorizontallyWithPadding(20);
     this->addChild(menu);
 
+    // 添加一个关闭按钮在右上角
+    auto closeBtn = MenuItemImage::create("CloseNormal.png", "CloseSelected.png", [=](Ref*)
+        {
+            this->removeFromParent();
+        });
+
+    auto sysMenu = Menu::create(closeBtn, nullptr);
+    sysMenu->setPosition(visibleSize.width - 50, visibleSize.height - 50);
+    this->addChild(sysMenu, 10);
     return true;
 }

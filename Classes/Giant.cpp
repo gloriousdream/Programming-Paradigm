@@ -52,12 +52,7 @@ Animate* Giant::createAnimate(const std::string& prefix, int frameCount)
 
 void Giant::actionWalk()
 {
-    // 1. 计算随机目标点 (巨人巡逻范围小一点，懒得动) 
-    float radius = 120.0f;
-    float dx = (rand() % (int)(radius * 2)) - radius;
-    float dy = (rand() % (int)(radius * 2)) - radius;
-    Vec2 targetPos = homePosition + Vec2(dx, dy);
-
+    Vec2 targetPos = this->getRandomPointInArea();
     Vec2 diff = targetPos - this->getPosition();
 
     // 距离太短就不动了

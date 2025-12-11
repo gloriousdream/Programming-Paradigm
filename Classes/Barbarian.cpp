@@ -50,11 +50,7 @@ Animate* Barbarian::createAnimate(const std::string& prefix, int frameCount)
 
 void Barbarian::actionWalk()
 {
-    // 1. 计算随机目标点
-    float radius = 150.0f;
-    float dx = (rand() % (int)(radius * 2)) - radius;
-    float dy = (rand() % (int)(radius * 2)) - radius;
-    Vec2 targetPos = homePosition + Vec2(dx, dy);
+    Vec2 targetPos = this->getRandomPointInArea();
 
     // 2. 计算方向向量
     Vec2 diff = targetPos - this->getPosition();

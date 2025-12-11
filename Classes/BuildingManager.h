@@ -16,15 +16,20 @@ public:
 
     // createBuilding 接受建筑类型和位置
     Building* createBuilding(int type, cocos2d::Vec2 pos);
-
+    cocos2d::Rect getSoldierSpawnArea();
+    //  获取士兵生成的保留区域 (Rect)
     bool canPlaceBuilding(cocos2d::Vec2 pos, int type);
     void occupyGrid(cocos2d::Vec2 pos, int type);
 
 private:
     BuildingManager();
     bool grid[32][24];
-
+    // 初始化士兵保留区
+    void initReservedArea();
     int getBuildingGridSize(int type);
+    // 存储保留区的格子索引，方便生成 Rect
+    int reservedCol;
+    int reservedRow;
 };
 
 #endif

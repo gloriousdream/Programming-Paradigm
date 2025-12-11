@@ -43,7 +43,7 @@ private:
     cocos2d::Label* goldLabel = nullptr;
     cocos2d::Label* waterLabel = nullptr;
     cocos2d::Label* populationLabel = nullptr;
-
+    void onFightpushed();
     void onSoldierpushed();
     void onBuildButtonPressed();
 

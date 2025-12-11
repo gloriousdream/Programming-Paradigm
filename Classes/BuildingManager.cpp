@@ -3,7 +3,7 @@
 USING_NS_CC;
 
 static BuildingManager* _instance = nullptr;
-
+static const int TILE = 64;
 BuildingManager* BuildingManager::getInstance()
 {
     if (!_instance)
@@ -13,10 +13,12 @@ BuildingManager* BuildingManager::getInstance()
 
 BuildingManager::BuildingManager()
 {
+    // 1. 初始化所有格子为空
     memset(grid, 0, sizeof(grid));
-}
 
-static const int TILE = 64;
+    // 2.初始化保留区域 (占位)
+    initReservedArea();
+}
 
 // 返回建筑占用格子大小
 int BuildingManager::getBuildingGridSize(int type)
@@ -59,7 +61,45 @@ bool BuildingManager::canPlaceBuilding(Vec2 pos, int type)
         }
     return true;
 }
+void BuildingManager::initReservedArea()
+{
+    auto visibleSize = Director::getInstance()->getVisibleSize();
 
+    // --- 计算目标位置 (屏幕左侧 20%，高度 50%) ---
+    float targetX = visibleSize.width * 0.2f;
+    float targetY = visibleSize.height * 0.5f;
+
+    // --- 转换为格子索引 ---
+    // 我们希望这块区域是 2x2 的格子 (128x128)
+    // 所以我们找一个左下角的格子索引
+    reservedCol = (int)(targetX / TILE);
+    reservedRow = (int)(targetY / TILE);
+
+    // 修正边界防止越界
+    if (reservedCol < 0) reservedCol = 0;
+    if (reservedCol > 30) reservedCol = 30; // 32 - 2
+    if (reservedRow < 0) reservedRow = 0;
+    if (reservedRow > 22) reservedRow = 22; // 24 - 2
+
+    // --- [关键] 标记格子为占用 ---
+    // 2x2 区域
+    grid[reservedCol][reservedRow] = true;         // 左下
+    grid[reservedCol + 1][reservedRow] = true;     // 右下
+    grid[reservedCol][reservedRow + 1] = true;     // 左上
+    grid[reservedCol + 1][reservedRow + 1] = true; // 右上
+
+    CCLOG("Reserved Area initialized at Grid[%d][%d]", reservedCol, reservedRow);
+}
+Rect BuildingManager::getSoldierSpawnArea()
+{
+    // 将格子索引转回世界坐标 (左下角原点)
+    float x = reservedCol * TILE;
+    float y = reservedRow * TILE;
+    float w = TILE * 2; // 2格宽
+    float h = TILE * 2; // 2格高
+
+    return Rect(x, y, w, h);
+}
 // 占用格子
 void BuildingManager::occupyGrid(Vec2 pos, int type)
 {

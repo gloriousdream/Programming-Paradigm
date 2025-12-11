@@ -2,6 +2,7 @@
 #include "cocos2d.h"
 #include "Barbarian.h"
 #include "Archer.h" 
+#include "Boomer.h"
 USING_NS_CC;
 
 static SoldierManager* _instance = nullptr;
@@ -41,31 +42,20 @@ Soldier* SoldierManager::createSoldier(int type, Vec2 pos)
 
     switch (type)
     {
-        case 1: // 野蛮人
-            soldier = Barbarian::create();
-            break;
-        case 2:
-            soldier = Giant::create(); 
-            break;
-        case 3:
-            soldier = Archer::create(); 
-            break;
-        case 4:
-            // soldier = Bomber::create(); 
-            break;
+        case 1: soldier = Barbarian::create(); break;
+        case 2: soldier = Giant::create(); break;
+        case 3: soldier = Archer::create(); break;
+        case 4: soldier = Bomber::create(); break; 
     }
 
     if (soldier)
     {
         soldier->setPosition(pos);
-        // 设置出生点作为巡逻中心
-        soldier->setHomePosition(pos);
-        // 立即开始动作
-        soldier->actionWalk();
+        soldier->setHomePosition(pos); // 保留作为默认值
     }
     else
     {
-        CCLOGERROR("Soldier type %d not implemented yet!", type);
+        CCLOGERROR("Soldier type %d create failed!", type);
     }
 
     return soldier;

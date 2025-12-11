@@ -53,12 +53,7 @@ Animate* Archer::createAnimate(const std::string& prefix, int frameCount)
 
 void Archer::actionWalk()
 {
-    // 1. 计算随机目标点 (巡逻半径可以比野蛮人稍大或稍小) 
-    float radius = 180.0f; // 弓箭手巡逻范围稍大
-    float dx = (rand() % (int)(radius * 2)) - radius;
-    float dy = (rand() % (int)(radius * 2)) - radius;
-    Vec2 targetPos = homePosition + Vec2(dx, dy);
-
+    Vec2 targetPos = this->getRandomPointInArea();
     // 2. 计算方向向量
     Vec2 diff = targetPos - this->getPosition();
 

@@ -7,21 +7,25 @@
 class Soldier : public cocos2d::Sprite
 {
 public:
-    // 初始化
     virtual bool init() override;
 
     // 纯虚函数：每个兵种必须实现自己的移动逻辑
     virtual void actionWalk() = 0;
 
-    // 设置初始巡逻中心点（通常是出生点）
+    //  设置活动区域
+    void setMoveArea(const cocos2d::Rect& area);
+
+    // 设置初始家位置
     void setHomePosition(cocos2d::Vec2 pos);
 
 protected:
     cocos2d::Vec2 homePosition;
 
-    // 通用逻辑：让士兵在 homePosition 附近随机走动
-    // radius: 巡逻半径
-    void executeRandomWalk(float radius);
+    //  存储活动区域
+    cocos2d::Rect _moveArea;
+
+    //  辅助函数：获取区域内的一个随机点
+    cocos2d::Vec2 getRandomPointInArea();
 };
 
 #endif

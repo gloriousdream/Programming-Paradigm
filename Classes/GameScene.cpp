@@ -64,8 +64,8 @@ bool GameScene::init()
 
     // 2. 建造、士兵按钮
     auto buildBtn = MenuItemImage::create("Building.png", "Building.png", CC_CALLBACK_0(GameScene::onBuildButtonPressed, this));
-    auto soldierBtn = MenuItemImage::create("Soldier.png", "Soldier.png", CC_CALLBACK_0(GameScene::onSoldierpushed, this));
-    auto menu = Menu::create(buildBtn, soldierBtn, nullptr);
+    auto FightBtn = MenuItemImage::create("Fight.png", "Fight.png", CC_CALLBACK_0(GameScene::onFightpushed, this));
+    auto menu = Menu::create(buildBtn, FightBtn, nullptr);
     menu->setPosition(origin.x + visibleSize.width - 130, origin.y + visibleSize.height / 2);
     menu->alignItemsVerticallyWithPadding(50);
     this->addChild(menu, 10);
@@ -176,67 +176,93 @@ void GameScene::updateResourceDisplay()
     if (populationLabel) populationLabel->setString(std::to_string(population) + "/100");
 }
 
-// 显示兵营菜单（升级 + 造兵）
 void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
 {
-    // 获取建筑数据
     Building* targetBuilding = static_cast<Building*>(building);
     Vec2 pos = building->getPosition();
     Size buildingSize = building->getContentSize();
 
-    // 1. 创建一个容器 Node，用于包裹菜单和文字
+    // 创建容器
     auto container = Node::create();
     container->setPosition(pos);
-    container->setTag(999); // 统一 Tag，方便清除
+    container->setTag(999);
     this->addChild(container, 100);
 
-    // --- 【新增】显示等级 Label ---
+    // 显示等级
     std::string lvStr = "Lv." + std::to_string(targetBuilding->getLevel());
     auto lvLabel = Label::createWithTTF(lvStr, "fonts/Marker Felt.ttf", 24);
     lvLabel->setColor(Color3B::YELLOW);
-    // 放在建筑上方较高处，避免遮挡按钮
     lvLabel->setPosition(Vec2(0, buildingSize.height / 2 + 100));
     container->addChild(lvLabel);
-    // ----------------------------
 
-    // 2. 升级按钮
-    auto upgradeBtn = MenuItemImage::create(
-        "UpgradeButton.png", "UpgradeButton.png",
-        [=](Ref* sender) {
-            int goldCost = targetBuilding->upgradeCostGold;
-            int holyCost = targetBuilding->upgradeCostHoly;
+    // 是否满级
+    bool isMaxLv = (targetBuilding->getLevel() >= 3);
 
-            if (this->gold >= goldCost && this->holyWater >= holyCost) {
-                this->gold -= goldCost;
-                this->holyWater -= holyCost;
-                targetBuilding->upgrade();
-                this->updateResourceDisplay();
-                CCLOG("Upgrade Successful!");
+    // 升级按钮（仅未满级）
+    MenuItemImage* upgradeBtn = nullptr;
+    if (!isMaxLv)
+    {
+        upgradeBtn = MenuItemImage::create(
+            "UpgradeButton.png", "UpgradeButton.png",
+            [=](Ref* sender)
+            {
+                int goldCost = targetBuilding->upgradeCostGold;
+                int holyCost = targetBuilding->upgradeCostHoly;
+
+                if (this->gold >= goldCost && this->holyWater >= holyCost)
+                {
+                    this->gold -= goldCost;
+                    this->holyWater -= holyCost;
+                    targetBuilding->upgrade();
+                    this->updateResourceDisplay();
+                    CCLOG("Upgrade Successful!");
+                }
+                else
+                {
+                    CCLOG("Not enough resources!");
+                }
+
+                this->removeChildByTag(999);
+                this->currentBuildingMenu = nullptr;
             }
-            else {
-                CCLOG("Not enough resources!");
-            }
-            // 关闭菜单
-            this->removeChildByTag(999);
-            this->currentBuildingMenu = nullptr;
-        }
-    );
-    upgradeBtn->setPosition(Vec2(-50, buildingSize.height / 2 + 50));
+        );
 
-    // 3. 造兵按钮
+        upgradeBtn->setPosition(Vec2(-50, buildingSize.height / 2 + 50));
+    }
+
+    // 造兵按钮
     auto trainBtn = MenuItemImage::create(
         "Train.png", "Train.png",
-        [=](Ref* sender) {
+        [=](Ref* sender)
+        {
             this->showTrainMenu(building);
             this->removeChildByTag(999);
             this->currentBuildingMenu = nullptr;
         }
     );
-    trainBtn->setPosition(Vec2(50, buildingSize.height / 2 + 50));
 
-    // 4. 创建菜单并加入容器
-    auto menu = Menu::create(upgradeBtn, trainBtn, nullptr);
-    menu->setPosition(Vec2::ZERO); // 相对容器原点
+    // ⭐ 满级 → 自动居中
+    // ⭐ 未满级 → 在右侧显示
+    Vec2 trainPos = isMaxLv ?
+        Vec2(0, buildingSize.height / 2 + 50) :
+        Vec2(50, buildingSize.height / 2 + 50);
+
+    trainBtn->setPosition(trainPos);
+
+    // 创建菜单
+    Menu* menu = nullptr;
+    if (isMaxLv)
+    {
+        // 满级 → 只显示造兵按钮
+        menu = Menu::create(trainBtn, nullptr);
+    }
+    else
+    {
+        // 未满级 → 升级 + 造兵
+        menu = Menu::create(upgradeBtn, trainBtn, nullptr);
+    }
+
+    menu->setPosition(Vec2::ZERO);
     container->addChild(menu);
 
     currentBuildingMenu = building;
@@ -277,41 +303,85 @@ void GameScene::onBuildingClicked(cocos2d::Sprite* building)
 
 void GameScene::showTrainMenu(cocos2d::Sprite* building)
 {
+    // 1. 清理互斥界面
+    this->removeChildByTag(999);
+    this->removeChildByTag(998);
+    currentBuildingMenu = nullptr;
+
     auto menu = Soldiermenu::createMenu();
     if (!menu) return;
 
-    menu->onTrainSoldier = [=](int soldierType, int amount) {
-        SoldierConfig config = getSoldierConfig(soldierType);
-        int totalGoldCost = config.costGold * amount;
-        int totalWaterCost = config.costHolyWater * amount;
-        int totalPop = config.popSpace * amount;
+    menu->setTag(998); // 标记为大弹窗
 
-        if (this->gold < totalGoldCost || this->holyWater < totalWaterCost) {
-            CCLOG("Not enough resources!");
-            return;
-        }
-        if (this->population + totalPop > 100) {
-            CCLOG("Population limit reached!");
-            return;
-        }
+    menu->onTrainSoldier = [=](int soldierType, int amount)
+        {
 
-        this->gold -= totalGoldCost;
-        this->holyWater -= totalWaterCost;
-        this->population += totalPop;
-        this->updateResourceDisplay();
+            // --- 资源检查与扣除逻辑 (保持不变) ---
+            SoldierConfig config = getSoldierConfig(soldierType);
+            int totalGoldCost = config.costGold * amount;
+            int totalWaterCost = config.costHolyWater * amount;
+            int totalPop = config.popSpace * amount;
 
-        Vec2 campPos = building->getPosition();
-        for (int i = 0; i < amount; i++) {
-            float offsetX = (rand() % 60) - 30;
-            float offsetY = (rand() % 60) - 30;
-            Vec2 spawnPos = campPos + Vec2(offsetX, offsetY);
-            auto soldier = SoldierManager::getInstance()->createSoldier(soldierType, spawnPos);
-            if (soldier) this->addChild(soldier, 15);
-        }
+            if (this->gold < totalGoldCost || this->holyWater < totalWaterCost)
+            {
+                CCLOG("Not enough resources!");
+                return;
+            }
+            if (this->population + totalPop > 100)
+            { // 假设上限 100
+                CCLOG("Population limit reached!");
+                return;
+            }
+
+            this->gold -= totalGoldCost;
+            this->holyWater -= totalWaterCost;
+            this->population += totalPop;
+            this->updateResourceDisplay();
+
+            auto visibleSize = Director::getInstance()->getVisibleSize();
+
+            // 1. 计算区域中心点
+            // X: 屏幕宽度的 20% 处 (左侧)
+            // Y: 屏幕高度的 50% 处 (中间)
+            float centerX = visibleSize.width * 0.2f;
+            float centerY = visibleSize.height * 0.5f;
+
+            // 2. 定义区域大小 (假设格子是64，2x2就是128)
+            float areaW = 128.0f;
+            float areaH = 128.0f;
+
+            // 3. 构建矩形 (原点在左下角，所以减去宽高的一半)
+            Rect patrolArea(centerX - areaW / 2, centerY - areaH / 2, areaW, areaH);
+
+            // -----------------------------------------------------------
+            // [生成士兵]
+            // -----------------------------------------------------------
+            for (int i = 0; i < amount; i++)
+            {
+                // 在 patrolArea 这个小方块内随机取一个点作为出生点
+                float spawnX = patrolArea.origin.x + CCRANDOM_0_1() * patrolArea.size.width;
+                float spawnY = patrolArea.origin.y + CCRANDOM_0_1() * patrolArea.size.height;
+
+                auto soldier = SoldierManager::getInstance()->createSoldier(soldierType, Vec2(spawnX, spawnY));
+
+                if (soldier)
+                {
+                    // 1. 告诉士兵只能在这个方块里跑
+                    soldier->setMoveArea(patrolArea);
+
+                    // 2. 手动启动巡逻
+                    soldier->actionWalk();
+
+                    // 3. 添加到场景 (Z轴15)
+                    this->addChild(soldier, 15);
+                }
+            }
+
+            CCLOG("Training Started: %d units spawned at Left-Middle Area", amount);
         };
+
     this->addChild(menu, 200);
 }
-
 void GameScene::showTrainAmountMenu(int soldierType)
 {
     CCLOG("TODO: Show amount selection for soldier type %d", soldierType);
@@ -428,7 +498,10 @@ void GameScene::onBuildButtonPressed()
         menu->removeFromParent();
         };
 }
+void GameScene::onFightpushed()
+{
 
+}
 void GameScene::onSoldierpushed()
 {
     closeCurrentPopup();
@@ -448,61 +521,74 @@ void GameScene::enablePlaceMode(int type, T menu)
     selectedType = type;
 }
 
-// 点击地图放置 (确认放置)
 void GameScene::onMapClicked(Vec2 pos)
 {
+    // 如果不在建造模式也不在放兵模式，直接返回
     if (!(placeModebuild || placeModesoldier)) return;
 
-    // 计算网格位置
+    // 计算网格吸附位置
     int gx = pos.x / 64;
     int gy = pos.y / 64;
     Vec2 snapPos(gx * 64 + 32, gy * 64 + 32);
 
-    // 1. 建筑放置逻辑
+    // --- 1. 建造模式逻辑 ---
     if (placeModebuild)
     {
-        // 检查资源
+        // 这里需要硬编码一下每种建筑的临时消耗，或者从 Config 获取
         int costGold = 0;
         int costHoly = 0;
-        switch (selectedType) {
-            case 1: costGold = 50; costHoly = 30; break;
-            case 2: costGold = 40; costHoly = 20; break;
-            case 3: costGold = 70; costHoly = 40; break;
-            case 4: costGold = 150; costHoly = 100; break;
-            case 5: costGold = 20; costHoly = 80; break;
+
+        // 简单的判定逻辑 (建议后续封装成 getBuildingCost)
+        switch (selectedType)
+        {
+            case 1: costGold = 50; costHoly = 30; break; // MilitaryCamp
+            case 2: costGold = 40; costHoly = 20; break; // WaterCollection
+            case 3: costGold = 70; costHoly = 40; break; // ArrowTower
+            case 4: costGold = 150; costHoly = 100; break; // TownHall
+            case 5: costGold = 20; costHoly = 80; break; // CoinCollection
         }
 
+        // 检查资源
         if (gold >= costGold && holyWater >= costHoly)
         {
-            // 尝试创建实体
+            // 尝试创建建筑
             auto building = BuildingManager::getInstance()->createBuilding(selectedType, snapPos);
+
             if (building)
             {
+                // [成功]
                 this->addChild(building, 5);
                 gold -= costGold;
                 holyWater -= costHoly;
                 updateResourceDisplay();
 
-                // 放置成功，移除虚影
-                if (ghostSprite) {
+                // 移除虚影
+                if (ghostSprite)
+                {
                     ghostSprite->removeFromParent();
                     ghostSprite = nullptr;
                 }
-
-                // 关闭放置模式
+                // 退出模式
                 placeModebuild = false;
             }
-            else {
+            else
+            {
+                // [失败]：位置已被占用
                 CCLOG("放置失败：位置已被占用");
-                // 可选：位置被占用时是否也要取消？通常RTS游戏位置占用不会取消，允许玩家换个地方点
-                // 如果你想位置占用也取消，就把下面的清除代码复制到这里
+                if (ghostSprite)
+                {
+                    ghostSprite->removeFromParent();
+                    ghostSprite = nullptr;
+                }
+                placeModebuild = false;
             }
         }
-        else {
+        else
+        {
+            // [失败]：资源不足
             CCLOG("资源不足");
-
-            // 资源不足时，移除虚影并退出放置模式 
-            if (ghostSprite) {
+            if (ghostSprite)
+            {
                 ghostSprite->removeFromParent();
                 ghostSprite = nullptr;
             }
@@ -510,17 +596,18 @@ void GameScene::onMapClicked(Vec2 pos)
         }
     }
 
-    // 2. 士兵放置逻辑
-    if (placeModesoldier)
+    // --- 2. 士兵放置逻辑 (进攻模式) ---
+    else if (placeModesoldier)
     {
-        auto soldier = SoldierManager::getInstance()->createSoldier(selectedType, snapPos);
-        if (soldier) this->addChild(soldier, 5);
-        placeModesoldier = false;
+        // 进攻用的兵，不需要限制区域，直接生成并启动
+        auto soldier = SoldierManager::getInstance()->createSoldier(selectedType, pos);
+        if (soldier)
+        {
+            soldier->actionWalk();
+            this->addChild(soldier, 15);
+        }
     }
-
-    selectedType = 0;
 }
-
 void GameScene::closeCurrentPopup()
 {
     if (currentPopup) {
