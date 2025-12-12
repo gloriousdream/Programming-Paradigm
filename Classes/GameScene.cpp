@@ -5,6 +5,7 @@
 #include "SoldierManager.h"
 #include "Building.h"
 #include "MilitaryCamp.h"
+#include "FightScene.h"
 
 USING_NS_CC;
 
@@ -462,7 +463,7 @@ void GameScene::showUpgradeButton(Sprite* building)
     }
     currentBuildingMenu = building;
 }
-
+// 点击建筑建造按钮
 void GameScene::onBuildButtonPressed()
 {
     auto existingMenu = this->getChildByName("BUILD_MENU_NODE");
@@ -500,7 +501,63 @@ void GameScene::onBuildButtonPressed()
 }
 void GameScene::onFightpushed()
 {
+    // 如果菜单已经打开了，就把它关掉
+    if (this->getChildByTag(TAG_DIFFICULTY_MENU)) {
+        this->removeChildByTag(TAG_DIFFICULTY_MENU);
+        return;
+    }
 
+    auto visibleSize = Director::getInstance()->getVisibleSize();
+    Vec2 origin = Director::getInstance()->getVisibleOrigin();
+
+    float menuX = origin.x + visibleSize.width - 130;
+    float menuY = origin.y + visibleSize.height / 2 - 200;
+
+    // --- EASY ---
+    auto btnEasy = MenuItemImage::create("Easy.png", "Easy.png", [=](Ref* sender) {
+        CCLOG("Go to Easy Mode");
+
+        // 先移除菜单
+        this->removeChildByTag(TAG_DIFFICULTY_MENU);
+
+        // 然后再跳转
+        Director::getInstance()->pushScene(TransitionFade::create(0.5f, FightScene::createScene(1)));
+        });
+
+    // --- MIDDLE ---
+    auto btnMiddle = MenuItemImage::create("Middle.png", "Middle.png", [=](Ref* sender) {
+        CCLOG("Go to Middle Mode");
+
+        // 先移除菜单
+        this->removeChildByTag(TAG_DIFFICULTY_MENU);
+
+        Director::getInstance()->pushScene(TransitionFade::create(0.5f, FightScene::createScene(2)));
+        });
+
+    // --- HARD ---
+    auto btnHard = MenuItemImage::create("Hard.png", "Hard.png", [=](Ref* sender) {
+        CCLOG("Go to Hard Mode");
+
+        // 先移除菜单
+        this->removeChildByTag(TAG_DIFFICULTY_MENU);
+
+        Director::getInstance()->pushScene(TransitionFade::create(0.5f, FightScene::createScene(3)));
+        });
+
+    // 创建菜单容器
+    auto diffMenu = Menu::create(btnEasy, btnMiddle, btnHard, nullptr);
+
+    // 设置菜单整体位置
+    diffMenu->setPosition(menuX, menuY);
+
+    // 让按钮垂直对齐，间隔 10 像素 (紧凑一点，看起来像一个下拉列表)
+    diffMenu->alignItemsVerticallyWithPadding(10);
+
+    // 设置 Tag，方便后面查找删除
+    diffMenu->setTag(TAG_DIFFICULTY_MENU);
+
+    // 添加到场景，层级设为 100 确保在最上层
+    this->addChild(diffMenu, 100);
 }
 void GameScene::onSoldierpushed()
 {

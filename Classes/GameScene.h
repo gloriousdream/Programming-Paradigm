@@ -19,6 +19,7 @@ public:
     void showTrainMenu(cocos2d::Sprite* building);
     void showTrainAmountMenu(int soldierType);
 
+
 private:
     bool placeModebuild = false;
     bool placeModesoldier = false;
@@ -50,6 +51,9 @@ private:
     template<typename T>
     void enablePlaceMode(int type, T menu);
     void onMapClicked(cocos2d::Vec2 pos);
+
+    // 记录当前难度
+    const int TAG_DIFFICULTY_MENU = 8888;
 
 };
 
