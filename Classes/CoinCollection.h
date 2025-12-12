@@ -10,17 +10,15 @@ public:
     CREATE_FUNC(CoinCollection);
     virtual void upgrade() override;
 
+    void setEnemyState(bool isEnemy);
+
 private:
-    // 奖励图标 (Coin.png)
     cocos2d::Sprite* rewardIcon = nullptr;
 
-    // 是否可以收集
-    bool isReadyToCollect = false;
+    int currentStorage = 0; // 当前累积
+    int maxStorage = 0;     // 上限
 
-    // 生产资源的回调函数
     void produceResource(float dt);
-
-    // 处理收集点击
     void onCollect();
 };
 

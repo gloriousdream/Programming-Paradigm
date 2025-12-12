@@ -4,117 +4,101 @@ USING_NS_CC;
 
 bool CoinCollection::init()
 {
-    // 1. 初始化基类
     if (!Building::init()) return false;
 
-    // 2. 设置初始贴图和属性 (保留你原有的数值)
     setTexture("CoinCollection.png");
     level = 1;
     maxHP = 150;
     currentHP = maxHP;
     updateHPBar();
 
-    // 3. 设置建造消耗
     buildCostGold = 20;
     buildCostHoly = 80;
-
-    // 4. 设置升级消耗
     upgradeCostGold = 40;
     upgradeCostHoly = 100;
 
-    // ---------------------------------------------------------
-    // 【新增】金币生产逻辑
-    // ---------------------------------------------------------
+    // 初始化
+    currentStorage = 0;
+    maxStorage = 100;
 
-    // 5. 创建悬浮的 Coin.png 图标 (请确保 Resources 目录下有 Coin.png)
     rewardIcon = Sprite::create("Coin.png");
     if (rewardIcon)
     {
-        // 放在建筑头顶上方
         rewardIcon->setPosition(getContentSize().width / 2, getContentSize().height + 40);
-        rewardIcon->setVisible(false); // 初始隐藏
+        rewardIcon->setVisible(false);
 
-        // 上下浮动动画
         auto moveUp = MoveBy::create(1.0f, Vec2(0, 10));
         auto moveDown = moveUp->reverse();
         rewardIcon->runAction(RepeatForever::create(Sequence::create(moveUp, moveDown, nullptr)));
 
-        this->addChild(rewardIcon, 20); // 层级在建筑之上
+        this->addChild(rewardIcon, 20);
+
+        // 绑定到 rewardIcon
+        auto touchListener = EventListenerTouchOneByOne::create();
+        touchListener->setSwallowTouches(true);
+
+        touchListener->onTouchBegan = [=](Touch* t, Event* e) {
+            auto target = static_cast<Sprite*>(e->getCurrentTarget());
+            if (!target->isVisible()) return false;
+
+            Vec2 pos = target->convertToNodeSpace(t->getLocation());
+            Size s = target->getContentSize();
+            Rect rect = Rect(0, 0, s.width, s.height);
+
+            if (rect.containsPoint(pos))
+            {
+                this->onCollect();
+                return true;
+            }
+            return false;
+            };
+
+        _eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, rewardIcon);
     }
 
-    // 6. 第一次启动：等待 10秒 产出
-    this->scheduleOnce(CC_SCHEDULE_SELECTOR(CoinCollection::produceResource), 10.0f);
-
-    // 7. 添加点击监听器 (专门用来检测图标点击)
-    auto touchListener = EventListenerTouchOneByOne::create();
-    touchListener->setSwallowTouches(true); // 吞噬事件
-
-    touchListener->onTouchBegan = [this](Touch* t, Event* e) {
-        // 如果不可收集或图标没显示，不处理
-        if (!isReadyToCollect || !rewardIcon || !rewardIcon->isVisible()) return false;
-
-        // 转换坐标检测点击
-        Vec2 touchPos = rewardIcon->convertTouchToNodeSpace(t);
-        Size s = rewardIcon->getContentSize();
-        Rect rect(0, 0, s.width, s.height);
-
-        // 如果点到了图标
-        if (rect.containsPoint(touchPos))
-        {
-            this->onCollect();
-            return true; // 吞噬点击
-        }
-
-        return false;
-        };
-    // 优先级设为比 Building 基类的监听器更高
-    _eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, this);
+    // 每 5 秒产出一次
+    this->schedule(CC_SCHEDULE_SELECTOR(CoinCollection::produceResource), 5.0f);
 
     return true;
 }
 
-// 定时器回调：显示图标
 void CoinCollection::produceResource(float dt)
 {
-    if (rewardIcon)
-    {
+    if (currentStorage >= maxStorage) return;
+
+    int production = level * 5;
+    currentStorage += production;
+
+    if (currentStorage > maxStorage) currentStorage = maxStorage;
+
+    if (currentStorage > 0 && rewardIcon) {
         rewardIcon->setVisible(true);
-        isReadyToCollect = true;
     }
 }
 
-// 玩家点击收集
 void CoinCollection::onCollect()
 {
-    if (!isReadyToCollect) return;
+    if (currentStorage <= 0) return;
 
-    // 根据等级计算产出数量
-    // 1级=5, 2级=10, 3级=15
-    int amount = this->level * 5;
-    // ------------------------------------
+    int amount = currentStorage;
 
-    CCLOG("Collected %d Gold (Level %d)!", amount, this->level);
+    CCLOG("Collected %d Gold!", amount);
 
-    // 1. 隐藏图标
+    EventCustom event("COLLECT_COIN_EVENT");
+    event.setUserData(&amount);
+    _eventDispatcher->dispatchEvent(&event);
+
+    currentStorage = 0;
     if (rewardIcon) {
         rewardIcon->setVisible(false);
     }
-    isReadyToCollect = false;
-
-    // 2. 发送自定义事件给 GameScene 加金币
-    EventCustom event("COLLECT_COIN_EVENT");
-    event.setUserData(&amount); // 发送计算好的数量
-    _eventDispatcher->dispatchEvent(&event);
-
-    // 3. 收集后，等待 10 秒再次生成
-    this->scheduleOnce(CC_SCHEDULE_SELECTOR(CoinCollection::produceResource), 10.0f);
 }
 
 void CoinCollection::upgrade()
 {
     level++;
     if (level == 2) {
-        setTexture("CoinCollection2.png");
+        setTexture("CoinCollection2.png"); 
         maxHP = 200;
         upgradeCostGold = 80;
         upgradeCostHoly = 150;
@@ -124,6 +108,25 @@ void CoinCollection::upgrade()
         maxHP = 300;
     }
 
+    // 升级增加容量
+    maxStorage = level * 100;
+
     currentHP = maxHP;
     updateHPBar();
+}
+
+void CoinCollection::setEnemyState(bool isEnemy)
+{
+    if (isEnemy)
+    {
+        // 停止生产
+        this->unschedule(CC_SCHEDULE_SELECTOR(CoinCollection::produceResource));
+
+        // 移除图标
+        if (rewardIcon) {
+            rewardIcon->removeFromParent();
+            rewardIcon = nullptr;
+        }
+        currentStorage = 0;
+    }
 }

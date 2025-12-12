@@ -10,14 +10,18 @@ public:
     CREATE_FUNC(WaterCollection);
     virtual void upgrade() override;
 
+    // 设置为敌人状态（停止生产）
+    void setEnemyState(bool isEnemy);
+
 private:
-    // 奖励图标 (Water.png)
     cocos2d::Sprite* rewardIcon = nullptr;
 
-    // 是否可以收集
-    bool isReadyToCollect = false;
+    // 当前累积的资源数量
+    int currentStorage = 0;
+    // 存储上限 (随等级提升)
+    int maxStorage = 0;
 
-    // 生产资源的回调函数 (10秒到期后调用)
+    // 定时生产函数
     void produceResource(float dt);
 
     // 处理收集点击

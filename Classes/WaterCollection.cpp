@@ -4,9 +4,10 @@ USING_NS_CC;
 
 bool WaterCollection::init()
 {
+    // 1. 初始化基类
     if (!Building::init()) return false;
 
-    // 1. 基础属性
+    // 2. 基础属性
     setTexture("WaterCollection.png");
     level = 1;
     maxHP = 120;
@@ -18,101 +19,140 @@ bool WaterCollection::init()
     upgradeCostGold = 40;
     upgradeCostHoly = 40;
 
-    // 2. 创建悬浮的 Water.png 图标 
+    // 初始化库存
+    currentStorage = 0;
+    maxStorage = 100; // 1级上限
+
+    // 3. 创建悬浮图标
     rewardIcon = Sprite::create("Water.png");
     if (rewardIcon)
     {
-        // 放在建筑头顶上方
         rewardIcon->setPosition(getContentSize().width / 2, getContentSize().height + 40);
         rewardIcon->setVisible(false); // 初始隐藏
 
-        // 加上浮动动画
+        // 浮动动画
         auto moveUp = MoveBy::create(1.0f, Vec2(0, 10));
         auto moveDown = moveUp->reverse();
         rewardIcon->runAction(RepeatForever::create(Sequence::create(moveUp, moveDown, nullptr)));
 
-        this->addChild(rewardIcon, 20); // 层级在建筑之上
+        this->addChild(rewardIcon, 20);
+
+        // 触摸监听器直接绑定到 rewardIcon 上
+        auto touchListener = EventListenerTouchOneByOne::create();
+        touchListener->setSwallowTouches(true); // 吞噬事件，防止点穿到建筑
+
+        touchListener->onTouchBegan = [=](Touch* t, Event* e) {
+            // 获取事件目标 (就是 rewardIcon)
+            auto target = static_cast<Sprite*>(e->getCurrentTarget());
+
+            // 如果图标没显示，肯定不能点
+            if (!target->isVisible()) return false;
+
+            // 转换坐标到图标内部
+            Vec2 pos = target->convertToNodeSpace(t->getLocation());
+            Size s = target->getContentSize();
+            Rect rect = Rect(0, 0, s.width, s.height);
+
+            // 判断是否点中图标
+            if (rect.containsPoint(pos))
+            {
+                this->onCollect(); // 触发收集
+                return true;       // 吞噬本次点击
+            }
+            return false;
+            };
+
+        // 绑定到 rewardIcon
+        _eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, rewardIcon);
     }
 
-    // 3. 第一次启动：等待 10秒 产出
-    this->scheduleOnce(CC_SCHEDULE_SELECTOR(WaterCollection::produceResource), 10.0f);
-
-    // 4. 添加点击监听器 (专门用来检测图标点击)
-    auto touchListener = EventListenerTouchOneByOne::create();
-    touchListener->setSwallowTouches(true); // 吞噬事件
-
-    touchListener->onTouchBegan = [this](Touch* t, Event* e) {
-        // 如果不可收集或图标没显示，不处理
-        if (!isReadyToCollect || !rewardIcon || !rewardIcon->isVisible()) return false;
-
-        // 转换坐标检测点击
-        Vec2 touchPos = rewardIcon->convertTouchToNodeSpace(t);
-        Size s = rewardIcon->getContentSize();
-        Rect rect(0, 0, s.width, s.height);
-
-        // 如果点到了图标
-        if (rect.containsPoint(touchPos))
-        {
-            this->onCollect();
-            return true; // 吞噬点击，防止触发建筑升级菜单
-        }
-
-        return false;
-        };
-    // 优先级设为比 Building 基类的监听器更高
-    _eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, this);
+    // 4. 开启无限循环生产 (每 5 秒生产一次)
+    this->schedule(CC_SCHEDULE_SELECTOR(WaterCollection::produceResource), 5.0f);
 
     return true;
 }
 
-// 定时器回调：显示图标
+// 生产逻辑：累加资源
 void WaterCollection::produceResource(float dt)
 {
-    if (rewardIcon)
-    {
+    // 如果满了就不产了
+    if (currentStorage >= maxStorage) return;
+
+    // 产量公式：等级 * 5
+    int production = level * 5;
+
+    currentStorage += production;
+
+    // 超过上限截断
+    if (currentStorage > maxStorage) {
+        currentStorage = maxStorage;
+    }
+
+    // 只要有库存，就显示图标
+    if (currentStorage > 0 && rewardIcon) {
         rewardIcon->setVisible(true);
-        isReadyToCollect = true;
     }
 }
 
-// 玩家点击收集
+// 收集逻辑：一次性拿走所有
 void WaterCollection::onCollect()
 {
-    if (!isReadyToCollect) return;
+    if (currentStorage <= 0) return;
 
-    // 根据等级计算产出数量
-    // 1级=5, 2级=10, 3级=15
-    int amount = this->level * 5;
-    // ------------------------------------
+    int amount = currentStorage;
 
-    CCLOG("Collected %d HolyWater (Level %d)!", amount, this->level);
+    CCLOG("Collected %d HolyWater!", amount);
 
-    // 1. 隐藏图标
+    // 1. 发送事件给 GameScene 加资源
+    EventCustom event("COLLECT_WATER_EVENT");
+    event.setUserData(&amount);
+    _eventDispatcher->dispatchEvent(&event);
+
+    // 2. 清空库存
+    currentStorage = 0;
+
+    // 3. 隐藏图标
     if (rewardIcon) {
         rewardIcon->setVisible(false);
     }
-    isReadyToCollect = false;
-
-    // 2. 发送自定义事件给 GameScene 加圣水
-    EventCustom event("COLLECT_WATER_EVENT");
-    event.setUserData(&amount); // 发送计算好的数量
-    _eventDispatcher->dispatchEvent(&event);
-
-    // 3. 收集后，等待 10 秒再次生成
-    this->scheduleOnce(CC_SCHEDULE_SELECTOR(WaterCollection::produceResource), 10.0f);
 }
 
 void WaterCollection::upgrade()
 {
     level++;
+    // 升级逻辑示例
     if (level == 2) {
-        setTexture("WaterCollection.png");
+        setTexture("WaterCollection.png"); // 如果有新图换新图
         maxHP = 150;
     }
     else if (level == 3) {
         setTexture("WaterCollection.png");
         maxHP = 180;
     }
+
+    // 升级增加容量上限
+    maxStorage = level * 100;
+
     currentHP = maxHP;
     updateHPBar();
+}
+
+void WaterCollection::setEnemyState(bool isEnemy)
+{
+    if (isEnemy)
+    {
+        // 1. 停止生产定时器
+        this->unschedule(CC_SCHEDULE_SELECTOR(WaterCollection::produceResource));
+
+        // 2. 隐藏图标，防止由于初始化时的动画导致它显示出来
+        if (rewardIcon) {
+            rewardIcon->setVisible(false);
+            rewardIcon->stopAllActions(); // 停止浮动动画，节省性能
+            rewardIcon->removeFromParent(); // 直接移除图标更彻底
+            rewardIcon = nullptr;
+        }
+
+        // 3. 清空库存
+        currentStorage = 0;
+    }
 }

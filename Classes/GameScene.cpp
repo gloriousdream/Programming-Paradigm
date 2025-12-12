@@ -63,7 +63,7 @@ bool GameScene::init()
         this->addChild(bg, 0);
     }
 
-    // 2. 建造、士兵按钮
+    // 2. 建造、战斗按钮
     auto buildBtn = MenuItemImage::create("Building.png", "Building.png", CC_CALLBACK_0(GameScene::onBuildButtonPressed, this));
     auto FightBtn = MenuItemImage::create("Fight.png", "Fight.png", CC_CALLBACK_0(GameScene::onFightpushed, this));
     auto menu = Menu::create(buildBtn, FightBtn, nullptr);
