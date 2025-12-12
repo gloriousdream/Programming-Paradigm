@@ -15,5 +15,5 @@ private:
     SoldierManager();
 
     // 32 × 24 的格子表//用于标记哪里有建筑物
-    bool grid[32][24];
+    bool grid[30][16];
 };

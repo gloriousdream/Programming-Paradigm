@@ -17,7 +17,7 @@ private:
     cocos2d::Vector<Building*> _enemyBuildings;
 
     // 地图网格标记：true表示被占用，false表示空闲
-    bool mapGrid[32][24];
+    bool mapGrid[30][16];
     const int TILE_SIZE = 64; // 格子像素大小
 
     // 生成关卡核心逻辑

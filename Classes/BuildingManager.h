@@ -23,7 +23,7 @@ public:
 
 private:
     BuildingManager();
-    bool grid[32][24];
+    bool grid[30][16];
     // 初始化士兵保留区
     void initReservedArea();
     int getBuildingGridSize(int type);
