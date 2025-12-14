@@ -6,132 +6,113 @@ bool Archer::init()
 {
     if (!Soldier::init()) return false;
 
-    // 1. 加载弓箭手图集
     SpriteFrameCache::getInstance()->addSpriteFramesWithFile("archerwalk.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("archerattack.plist");
 
-    // 2. 设置初始静止状态 (07帧)
-    // 假设默认显示侧面
-    if (SpriteFrameCache::getInstance()->getSpriteFrameByName("archer_side_walk_07.png"))
-    {
-        this->setSpriteFrame("archer_side_walk_07.png");
-    }
-    else
-    {
-        // 兜底：如果资源没加载成功，用个色块或默认图防止崩溃
-        this->setTexture("CloseNormal.png");
-        CCLOGERROR("Archer resource not found!");
-    }
+    // 远程攻击距离
+    this->_attackRange = 250.0f;
 
-    // 弓箭手通常比野蛮人稍微瘦一点，保持 0.8 或根据实际美术调整
+    auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName("archer_side_walk_01.png");
+    if (!frame) frame = SpriteFrameCache::getInstance()->getSpriteFrameByName("archer_side_walk01.png");
+    if (frame) this->setSpriteFrame(frame);
+
     this->setScale(0.8f);
-    this->setAnchorPoint(Vec2(0.5, 0)); // 脚底对齐
+    this->setAnchorPoint(Vec2(0.5, 0));
 
     return true;
 }
 
-// 辅助：创建动画 (1-8帧)
-Animate* Archer::createAnimate(const std::string& prefix, int frameCount)
-{
-    Vector<SpriteFrame*> frames;
-    frames.reserve(frameCount);
-
-    for (int i = 1; i <= frameCount; i++)
-    {
-        // 格式化文件名：archer_side_walk_01.png
-        std::string name = StringUtils::format("%s_%02d.png", prefix.c_str(), i);
-        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
-        if (frame)
-        {
-            frames.pushBack(frame);
-        }
-    }
-
-    // 弓箭手可能动作轻快一点，0.1f 是标准速度
-    auto animation = Animation::createWithSpriteFrames(frames, 0.1f);
-    return Animate::create(animation);
-}
-
 void Archer::actionWalk()
 {
-    Vec2 targetPos = this->getRandomPointInArea();
-    // 2. 计算方向向量
-    Vec2 diff = targetPos - this->getPosition();
+    // 使用基类方向
+    Vec2 diff = this->getCurrentDirection();
+    if (diff.length() < 0.1f) diff = Vec2(1, 0);
 
-    // 距离过短则重试
-    if (diff.length() < 10.0f)
-    {
-        this->actionWalk();
-        return;
-    }
+    std::string animPrefix;
 
-    // 3. 决定动画前缀 & 翻转
-    std::string animPrefix = "";
+    if (diff.x < 0) this->setFlippedX(true);
+    else this->setFlippedX(false);
 
-    // 左右翻转 (素材全部朝右)
-    if (diff.x < 0)
-    {
-        this->setFlippedX(true);  // 往左走，翻转
-    }
-    else
-    {
-        this->setFlippedX(false); // 往右走，正常
-    }
-
-    // 上下侧面判断 (逻辑同野蛮人)
-    // 如果 Y 轴分量显著大于 X 轴的一半，则视为纵向移动
     if (diff.y > std::abs(diff.x) * 0.5f)
     {
-        animPrefix = "archer_upper_walk"; // 背影
+        animPrefix = "archer_upper_walk";
     }
     else if (diff.y < -std::abs(diff.x) * 0.5f)
     {
-        animPrefix = "archer_under_walk"; // 正面
+        animPrefix = "archer_under_walk";
     }
     else
     {
-        animPrefix = "archer_side_walk";  // 侧面
+        animPrefix = "archer_side_walk";
     }
 
-    // 4. 运行动画
-    this->stopActionByTag(TAG_WALK_ACTION);
+    this->stopActionByTag(999);
 
-    // 播放 01-08 的循环动画
-    Animate* anim = createAnimate(animPrefix, 8);
-    if (anim)
+    Vector<SpriteFrame*> frames;
+    for (int i = 1; i <= 8; i++)
     {
-        auto repeatAnim = RepeatForever::create(anim);
-        repeatAnim->setTag(TAG_WALK_ACTION);
-        this->runAction(repeatAnim);
+        std::string name = StringUtils::format("%s_%02d.png", animPrefix.c_str(), i);
+        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        if (!frame)
+        {
+            name = StringUtils::format("%s%02d.png", animPrefix.c_str(), i);
+            frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        }
+        if (frame) frames.pushBack(frame);
     }
 
-    // 5. 运行位移
-    float speed = 70.0f; // 弓箭手移动速度稍快
-    float duration = diff.length() / speed;
-    if (duration < 0.1f) duration = 0.1f;
+    if (!frames.empty())
+    {
+        auto anim = Animation::createWithSpriteFrames(frames, 0.1f);
+        auto repeat = RepeatForever::create(Animate::create(anim));
+        repeat->setTag(999);
+        this->runAction(repeat);
+    }
+}
 
-    auto move = MoveTo::create(duration, targetPos);
+void Archer::actionAttack()
+{
+    if (!_targetBuilding) return;
 
-    // 移动结束回调
-    auto finishMove = CallFunc::create([this, animPrefix]()
+    Vec2 diff = _targetBuilding->getPosition() - this->getPosition();
+
+    if (diff.x < 0) this->setFlippedX(true);
+    else this->setFlippedX(false);
+
+    std::string animPrefix;
+    if (diff.y > std::abs(diff.x) * 0.5f) animPrefix = "archer_upper_attack";
+    else if (diff.y < -std::abs(diff.x) * 0.5f) animPrefix = "archer_under_attack";
+    else animPrefix = "archer_side_attack";
+
+    Vector<SpriteFrame*> frames;
+    for (int i = 1; i <= 9; i++)
+    {
+        std::string name = StringUtils::format("%s_%02d.png", animPrefix.c_str(), i);
+        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        if (!frame)
         {
+            name = StringUtils::format("%s%02d.png", animPrefix.c_str(), i);
+            frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        }
+        if (frame) frames.pushBack(frame);
+    }
 
-            // 1. 停止动画
-            this->stopActionByTag(TAG_WALK_ACTION);
+    if (frames.empty()) return;
 
-            // 2. 恢复到 07 帧 (静止状态)
-            // 根据刚才行走的方向，选择对应的静止图
-            std::string idleFrameName = StringUtils::format("%s_07.png", animPrefix.c_str());
-            this->setSpriteFrame(idleFrameName);
+    Animation* animation = Animation::createWithSpriteFrames(frames, 0.1f);
+    Animate* animate = Animate::create(animation);
 
-            // 3. 休息后继续
-            auto delay = DelayTime::create(1.0f + CCRANDOM_0_1() * 2.0f);
-            auto next = CallFunc::create([this]()
-                {
-                    this->actionWalk();
-                });
-
-            this->runAction(Sequence::create(delay, next, nullptr));
+    auto doDamage = CallFunc::create([this]()
+        {
+            if (_targetBuilding && _targetBuilding->getParent())
+            {
+                _targetBuilding->takeDamage(15);
+            }
         });
 
-    this->runAction(Sequence::create(move, finishMove, nullptr));
+    auto seq = Sequence::create(animate, doDamage, nullptr);
+    auto repeat = RepeatForever::create(seq);
+    repeat->setTag(999);
+
+    this->runAction(repeat);
 }

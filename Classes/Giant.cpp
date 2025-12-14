@@ -6,76 +6,29 @@ bool Giant::init()
 {
     if (!Soldier::init()) return false;
 
-    // 1. 加载巨人图集
     SpriteFrameCache::getInstance()->addSpriteFramesWithFile("giantwalk.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("giantattack.plist");
 
-    // 2. 设置初始静止状态为 03 帧
-    // 假设默认显示侧面
-    if (SpriteFrameCache::getInstance()->getSpriteFrameByName("giant_side_walk_03.png"))
-    {
-        this->setSpriteFrame("giant_side_walk_03.png");
-    }
-    else
-    {
-        this->setTexture("CloseNormal.png"); // 兜底
-        CCLOGERROR("Giant resource not found!");
-    }
+    auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName("giant_side_walk_01.png");
+    if (!frame) frame = SpriteFrameCache::getInstance()->getSpriteFrameByName("giant_side_walk01.png");
+    if (frame) this->setSpriteFrame(frame);
 
-    // 3. 巨人体型设置
-    // 巨人通常比较大，如果不缩放或者放大一点会更有压迫感
     this->setScale(1.2f);
-    this->setAnchorPoint(Vec2(0.5, 0)); // 脚底对齐
+    this->setAnchorPoint(Vec2(0.5, 0));
 
     return true;
 }
 
-Animate* Giant::createAnimate(const std::string& prefix, int frameCount)
-{
-    Vector<SpriteFrame*> frames;
-    frames.reserve(frameCount);
-
-    // 循环 1 到 12
-    for (int i = 1; i <= frameCount; i++)
-    {
-        std::string name = StringUtils::format("%s_%02d.png", prefix.c_str(), i);
-        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
-        if (frame)
-        {
-            frames.pushBack(frame);
-        }
-    }
-
-    // 巨人动作缓慢沉重，单帧时间设长一点 (0.15s)
-    auto animation = Animation::createWithSpriteFrames(frames, 0.15f);
-    return Animate::create(animation);
-}
-
 void Giant::actionWalk()
 {
-    Vec2 targetPos = this->getRandomPointInArea();
-    Vec2 diff = targetPos - this->getPosition();
+    Vec2 diff = this->getCurrentDirection();
+    if (diff.length() < 0.1f) diff = Vec2(1, 0);
 
-    // 距离太短就不动了
-    if (diff.length() < 10.0f)
-    {
-        this->actionWalk();
-        return;
-    }
+    std::string animPrefix;
 
-    // 2. 决定方向与翻转
-    std::string animPrefix = "";
+    if (diff.x < 0) this->setFlippedX(true);
+    else this->setFlippedX(false);
 
-    // 左右翻转 (素材全部朝右)
-    if (diff.x < 0)
-    {
-        this->setFlippedX(true);  // 往左走，翻转
-    }
-    else
-    {
-        this->setFlippedX(false); // 往右走
-    }
-
-    // 上下侧面判断
     if (diff.y > std::abs(diff.x) * 0.5f)
     {
         animPrefix = "giant_upper_walk";
@@ -89,44 +42,92 @@ void Giant::actionWalk()
         animPrefix = "giant_side_walk";
     }
 
-    // 3. 运行动画 (1-12 循环) 
-    this->stopActionByTag(TAG_WALK_ACTION);
+    this->stopActionByTag(999);
 
-    Animate* anim = createAnimate(animPrefix, 12); // 12帧
-    if (anim)
+    Vector<SpriteFrame*> frames;
+    // 假设走路统一是 8 帧
+    for (int i = 1; i <= 12; i++)
     {
-        auto repeatAnim = RepeatForever::create(anim);
-        repeatAnim->setTag(TAG_WALK_ACTION);
-        this->runAction(repeatAnim);
+        std::string name = StringUtils::format("%s_%02d.png", animPrefix.c_str(), i);
+        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        if (!frame)
+        {
+            name = StringUtils::format("%s%02d.png", animPrefix.c_str(), i);
+            frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        }
+        if (!frame) break;
+        frames.pushBack(frame);
     }
 
-    // 4. 运行位移
-    // 巨人移动速度慢
-    float speed = 35.0f;
-    float duration = diff.length() / speed;
-    if (duration < 0.1f) duration = 0.1f;
+    if (!frames.empty())
+    {
+        auto anim = Animation::createWithSpriteFrames(frames, 0.15f);
+        auto repeat = RepeatForever::create(Animate::create(anim));
+        repeat->setTag(999);
+        this->runAction(repeat);
+    }
+}
 
-    auto move = MoveTo::create(duration, targetPos);
+void Giant::actionAttack()
+{
+    if (!_targetBuilding) return;
 
-    auto finishMove = CallFunc::create([this, animPrefix]()
+    Vec2 diff = _targetBuilding->getPosition() - this->getPosition();
+
+    std::string animPrefix;
+    int frameCount = 0;
+
+    if (diff.x < 0) this->setFlippedX(true);
+    else this->setFlippedX(false);
+
+    if (diff.y > std::abs(diff.x) * 0.5f)
+    {
+        animPrefix = "giant_upper_attack";
+        frameCount = 8;
+    }
+    else if (diff.y < -std::abs(diff.x) * 0.5f)
+    {
+        animPrefix = "giant_under_attack";
+        frameCount = 8;
+    }
+    else
+    {
+        animPrefix = "giant_side_attack";
+        frameCount = 20;
+    }
+
+    Vector<SpriteFrame*> frames;
+    for (int i = 1; i <= frameCount; i++)
+    {
+        std::string name = StringUtils::format("%s_%02d.png", animPrefix.c_str(), i);
+        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        if (!frame)
         {
+            name = StringUtils::format("%s%02d.png", animPrefix.c_str(), i);
+            frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        }
+        if (frame) frames.pushBack(frame);
+    }
 
-            // 停止动画
-            this->stopActionByTag(TAG_WALK_ACTION);
+    if (frames.empty()) return;
 
-            // 强制恢复到 03 帧 (静止状态)
-            std::string idleFrameName = StringUtils::format("%s_03.png", animPrefix.c_str());
-            this->setSpriteFrame(idleFrameName);
+    float frameRate = 0.1f;
+    Animation* animation = Animation::createWithSpriteFrames(frames, frameRate);
+    Animate* animate = Animate::create(animation);
 
-            // 休息 (巨人反应慢，休息久一点)
-            auto delay = DelayTime::create(2.0f + CCRANDOM_0_1() * 2.0f);
-            auto next = CallFunc::create([this]()
-                {
-                    this->actionWalk();
-                });
-
-            this->runAction(Sequence::create(delay, next, nullptr));
+    auto doDamage = CallFunc::create([this]()
+        {
+            if (_targetBuilding && _targetBuilding->getParent())
+            {
+                _targetBuilding->takeDamage(50);
+            }
         });
 
-    this->runAction(Sequence::create(move, finishMove, nullptr));
+    float delay = (frameCount == 8) ? 0.8f : 0.1f;
+
+    auto seq = Sequence::create(animate, doDamage, DelayTime::create(delay), nullptr);
+    auto repeat = RepeatForever::create(seq);
+    repeat->setTag(999);
+
+    this->runAction(repeat);
 }

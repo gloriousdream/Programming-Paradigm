@@ -6,134 +6,167 @@ bool Bomber::init()
 {
     if (!Soldier::init()) return false;
 
-    // 1. 加载炸弹人图集
+    // 加载动画资源
     SpriteFrameCache::getInstance()->addSpriteFramesWithFile("wallbreakerwalk.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("wallbreakerattack.plist");
 
-    // 2. [关键] 设置初始静止状态 (06帧)
-    // 默认显示侧面
-    std::string startFrame = "wall_breaker_side_walk_06.png";
-    if (SpriteFrameCache::getInstance()->getSpriteFrameByName(startFrame))
-    {
-        this->setSpriteFrame(startFrame);
-    }
-    else
-    {
-        // 兜底防止崩溃
-        this->setTexture("CloseNormal.png");
-        CCLOGERROR("Bomber resource not found: %s", startFrame.c_str());
-    }
+    // 初始展示
+    auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName("wall_breaker_side_walk_01.png");
+    if (!frame) frame = SpriteFrameCache::getInstance()->getSpriteFrameByName("wall_breaker_side_walk01.png");
+    if (frame) this->setSpriteFrame(frame);
 
-    // 炸弹人个头通常比较小，但拿着大炸弹
     this->setScale(0.8f);
-    this->setAnchorPoint(Vec2(0.5, 0)); // 脚底对齐
+    this->setAnchorPoint(Vec2(0.5, 0));
+
+    // 炸弹人攻击距离很近，几乎贴脸
+    this->_attackRange = 40.0f;
 
     return true;
 }
 
-// 辅助：创建动画 (1-8帧)
-Animate* Bomber::createAnimate(const std::string& prefix, int frameCount)
-{
-    Vector<SpriteFrame*> frames;
-    frames.reserve(frameCount);
-
-    for (int i = 1; i <= frameCount; i++)
-    {
-        // 格式化文件名：wall_breaker_side_walk_01.png
-        std::string name = StringUtils::format("%s_%02d.png", prefix.c_str(), i);
-        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
-        if (frame)
-        {
-            frames.pushBack(frame);
-        }
-    }
-
-    // 炸弹人步伐急促，速度设快一点 (0.08s)
-    auto animation = Animation::createWithSpriteFrames(frames, 0.08f);
-    return Animate::create(animation);
-}
-
 void Bomber::actionWalk()
 {
-    Vec2 targetPos = this->getRandomPointInArea();
-    // --- 2. 计算方向向量 ---
-    Vec2 diff = targetPos - this->getPosition();
+    // 获取移动方向
+    Vec2 diff = this->getCurrentDirection();
+    if (diff.length() < 0.1f) diff = Vec2(1, 0);
 
-    // 距离过短则重试
-    if (diff.length() < 10.0f)
-    {
-        this->actionWalk();
-        return;
-    }
+    std::string animPrefix;
 
-    // --- 3. 决定动画前缀 & 翻转 ---
-    std::string animPrefix = "";
+    if (diff.x < 0) this->setFlippedX(true);
+    else this->setFlippedX(false);
 
-    // A. 左右翻转 (素材全部朝右)
-    if (diff.x < 0)
-    {
-        this->setFlippedX(true);  // 往左走，翻转
-    }
-    else
-    {
-        this->setFlippedX(false); // 往右走，正常
-    }
-
-    // B. 上下侧面判断
-    // 阈值判断：Y轴移动量 > X轴移动量的一半
     if (diff.y > std::abs(diff.x) * 0.5f)
     {
-        animPrefix = "wall_breaker_upper_walk"; // 背影
+        animPrefix = "wall_breaker_upper_walk";
     }
     else if (diff.y < -std::abs(diff.x) * 0.5f)
     {
-        animPrefix = "wall_breaker_under_walk"; // 正面
+        animPrefix = "wall_breaker_under_walk";
     }
     else
     {
-        animPrefix = "wall_breaker_side_walk";  // 侧面
+        animPrefix = "wall_breaker_side_walk";
     }
 
-    // --- 4. 运行动画 ---
-    this->stopActionByTag(TAG_WALK_ACTION);
+    // 防止重复设置相同的动作
+    this->stopActionByTag(999);
 
-    // 播放 01-08 的循环动画
-    Animate* anim = createAnimate(animPrefix, 8);
-    if (anim)
+    Vector<SpriteFrame*> frames;
+    for (int i = 1; i <= 12; i++)
     {
-        auto repeatAnim = RepeatForever::create(anim);
-        repeatAnim->setTag(TAG_WALK_ACTION);
-        this->runAction(repeatAnim);
+        std::string name = StringUtils::format("%s_%02d.png", animPrefix.c_str(), i);
+        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        if (!frame)
+        {
+            name = StringUtils::format("%s%02d.png", animPrefix.c_str(), i);
+            frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        }
+        if (!frame) break;
+        frames.pushBack(frame);
     }
 
-    // --- 5. 运行位移 ---
-    // 炸弹人移动速度很快
-    float speed = 90.0f;
-    float duration = diff.length() / speed;
-    if (duration < 0.1f) duration = 0.1f;
+    if (!frames.empty())
+    {
+        auto anim = Animation::createWithSpriteFrames(frames, 0.08f);
+        auto repeat = RepeatForever::create(Animate::create(anim));
+        repeat->setTag(999);
+        this->runAction(repeat);
+    }
+}
 
-    auto move = MoveTo::create(duration, targetPos);
+void Bomber::actionAttack()
+{
+    // 如果已经在进行攻击（正在扔炸弹），不要重复触发
+    // 我们可以通过 Tag 或者 State 来判断，这里直接 stopAllActions 简单粗暴
+    this->stopAllActions();
 
-    // 移动结束回调
-    auto finishMove = CallFunc::create([this, animPrefix]()
+    if (!_targetBuilding) return;
+
+    Vec2 diff = _targetBuilding->getPosition() - this->getPosition();
+
+    // 1. 设置朝向
+    if (diff.x < 0) this->setFlippedX(true);
+    else this->setFlippedX(false);
+
+    std::string animPrefix;
+    if (diff.y > std::abs(diff.x) * 0.5f) animPrefix = "wall_breaker_upper_attack";
+    else if (diff.y < -std::abs(diff.x) * 0.5f) animPrefix = "wall_breaker_under_attack";
+    else animPrefix = "wall_breaker_side_attack";
+
+    // 2. 准备动画帧 (1-7帧)
+    Vector<SpriteFrame*> frames;
+    for (int i = 1; i <= 7; i++)
+    {
+        std::string name = StringUtils::format("%s_%02d.png", animPrefix.c_str(), i);
+        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        if (!frame)
+        {
+            name = StringUtils::format("%s%02d.png", animPrefix.c_str(), i);
+            frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        }
+        if (frame) frames.pushBack(frame);
+    }
+
+    if (frames.empty()) return;
+
+    // 3. 创建动画动作 (只播一次，不要 RepeatForever)
+    Animation* animation = Animation::createWithSpriteFrames(frames, 0.1f);
+    Animate* animate = Animate::create(animation);
+
+    // 4. 【核心逻辑】扔炸弹 -> 爆炸 -> 自杀
+    auto throwBombSequence = CallFunc::create([this, animPrefix]()
         {
 
-            // 1. 停止动画
-            this->stopActionByTag(TAG_WALK_ACTION);
+            // A. 创建炸弹精灵
+            auto bomb = Sprite::create("wall_breaker_bomb.png");
+            if (bomb)
+            {
+                // 炸弹位置：放在炸弹人脚下或稍前面
+                bomb->setPosition(this->getPosition() + Vec2(0, 20));
 
-            // 2. [关键] 恢复到 06 帧 (静止状态)
-            // 无论刚才朝向哪里，停下来都显示对应的 06 帧
-            std::string idleFrameName = StringUtils::format("%s_06.png", animPrefix.c_str());
-            this->setSpriteFrame(idleFrameName);
-
-            // 3. 休息后继续
-            auto delay = DelayTime::create(0.5f + CCRANDOM_0_1() * 1.5f);
-            auto next = CallFunc::create([this]()
+                // 将炸弹添加到 Soldier 的父节点(FightScene)，确保炸弹人死后炸弹还在
+                if (this->getParent())
                 {
-                    this->actionWalk();
-                });
+                    this->getParent()->addChild(bomb, this->getLocalZOrder() + 1);
+                }
 
-            this->runAction(Sequence::create(delay, next, nullptr));
+                // B. 炸弹人动作：回到第一帧 (假装扔完看着)
+                std::string idleFrameName = StringUtils::format("%s_01.png", animPrefix.c_str());
+                auto idleFrame = SpriteFrameCache::getInstance()->getSpriteFrameByName(idleFrameName);
+                if (!idleFrame) idleFrame = SpriteFrameCache::getInstance()->getSpriteFrameByName(StringUtils::format("%s01.png", animPrefix.c_str()));
+                if (idleFrame)
+                {
+                    this->setSpriteFrame(idleFrame);
+                }
+
+                // C. 炸弹的生命周期：延迟0.5s -> 爆炸造成伤害 -> 炸弹消失 -> 炸弹人死亡
+                auto bombLogic = Sequence::create(
+                    DelayTime::create(0.5f),
+                    CallFunc::create([this, bomb]()
+                        {
+                            // 1. 造成伤害
+                            if (this->_targetBuilding && this->_targetBuilding->getParent())
+                            {
+                                // 炸弹人伤害极高，假设 200
+                                this->_targetBuilding->takeDamage(200);
+
+                            }
+
+                            // 2. 移除炸弹
+                            bomb->removeFromParent();
+
+                            // 3. 移除炸弹人 (自杀)
+                            this->removeFromParent();
+                        }),
+                    nullptr
+                );
+
+                bomb->runAction(bombLogic);
+            }
         });
 
-    this->runAction(Sequence::create(move, finishMove, nullptr));
+    // 5. 运行序列： 播放攻击动画 -> 执行扔炸弹逻辑
+    auto finalSeq = Sequence::create(animate, throwBombSequence, nullptr);
+    finalSeq->setTag(999);
+    this->runAction(finalSeq);
 }

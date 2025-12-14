@@ -9,7 +9,8 @@ class Building : public cocos2d::Sprite
 public:
     virtual bool init() override;
     virtual void upgrade() = 0; // 纯虚函数，由子类实现
-
+    int getHP() const { return currentHP; }
+    int getMaxHP() const { return maxHP; }
     int getLevel() const { return level; }
     void takeDamage(int dmg);   // 受伤
     void updateHPBar();         // 更新血条显示

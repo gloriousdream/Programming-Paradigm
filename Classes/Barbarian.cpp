@@ -6,137 +6,116 @@ bool Barbarian::init()
 {
     if (!Soldier::init()) return false;
 
-    // 1. 加载图集
+    // 加载资源
     SpriteFrameCache::getInstance()->addSpriteFramesWithFile("barbarianwalk.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("barbarianattack.plist");
 
-    // 2. 设置初始外观为 07 (静止帧)
-    // 默认先朝右看
-    if (SpriteFrameCache::getInstance()->getSpriteFrameByName("barbarian_side_walk_07.png"))
-    {
-        this->setSpriteFrame("barbarian_side_walk_07.png");
-    }
-    else
-    {
-        // 防崩溃兜底
-        this->setTexture("CloseNormal.png");
-    }
+    // 初始展示
+    auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName("barbarian_side_walk_01.png");
+    if (!frame) frame = SpriteFrameCache::getInstance()->getSpriteFrameByName("barbarian_side_walk01.png");
+    if (frame) this->setSpriteFrame(frame);
 
     this->setScale(0.8f);
     this->setAnchorPoint(Vec2(0.5, 0));
 
     return true;
 }
-// 辅助：创建动画
-Animate* Barbarian::createAnimate(const std::string& prefix, int frameCount)
-{
-    Vector<SpriteFrame*> frames;
-    frames.reserve(frameCount);
-
-    for (int i = 1; i <= frameCount; i++)
-    {
-        // 拼接名字
-        std::string name = StringUtils::format("%s_%02d.png", prefix.c_str(), i);
-        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
-        if (frame)
-        {
-            frames.pushBack(frame);
-        }
-    }
-
-    // 0.1f 是每一帧的时间，8帧就是0.8秒走一步
-    auto animation = Animation::createWithSpriteFrames(frames, 0.1f);
-    return Animate::create(animation);
-}
 
 void Barbarian::actionWalk()
 {
-    Vec2 targetPos = this->getRandomPointInArea();
+    // 【关键】使用基类计算好的瞬时方向
+    Vec2 diff = this->getCurrentDirection();
+    if (diff.length() < 0.1f) diff = Vec2(1, 0);
 
-    // 2. 计算方向向量
-    Vec2 diff = targetPos - this->getPosition();
+    std::string animPrefix;
 
-    // 如果距离太短（比如小于10像素），就不走了，重新随机
-    if (diff.length() < 10.0f)
-    {
-        this->actionWalk();
-        return;
-    }
-
-    // 3. 决定使用哪套动画 & 是否翻转
-    std::string animPrefix = "";
-    bool needFlipX = false;
-
-    // 判断左右翻转 
-    if (diff.x < 0)
-    {
-        needFlipX = true; // 目标在左边，翻转
-    }
-    else
-    {
-        needFlipX = false; // 目标在右边，不翻转
-    }
-    this->setFlippedX(needFlipX);
-
-    // 判断是用 Side, Upper 还是 Under
-    // 用斜率来判断：如果纵向移动比横向明显，就用上下走，否则用侧着走
-    // 这里设定一个阈值，比如 tan(30度) 左右，或者简单判断 dy 和 dx 的绝对值
+    if (diff.x < 0) this->setFlippedX(true);
+    else this->setFlippedX(false);
 
     if (diff.y > std::abs(diff.x) * 0.5f)
     {
-        // 往上走 (Y 正方向，且分量够大)
         animPrefix = "barbarian_upper_walk";
     }
     else if (diff.y < -std::abs(diff.x) * 0.5f)
     {
-        // 往下走 (Y 负方向)
         animPrefix = "barbarian_under_walk";
     }
     else
     {
-        // 主要是横向移动
         animPrefix = "barbarian_side_walk";
     }
 
-    // 运行动画 (1-8 循环) 
-    this->stopActionByTag(TAG_WALK_ACTION);
-    Animate* anim = createAnimate(animPrefix, 8);
-    if (anim)
+    this->stopActionByTag(999);
+
+    Vector<SpriteFrame*> frames;
+    for (int i = 1; i <= 8; i++)
     {
-        auto repeatAnim = RepeatForever::create(anim);
-        repeatAnim->setTag(TAG_WALK_ACTION);
-        this->runAction(repeatAnim);
+        // 兼容文件名格式
+        std::string name = StringUtils::format("%s_%02d.png", animPrefix.c_str(), i);
+        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        if (!frame)
+        {
+            name = StringUtils::format("%s%02d.png", animPrefix.c_str(), i);
+            frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        }
+        if (frame) frames.pushBack(frame);
     }
 
-    // 运行位移 
-    float speed = 60.0f;
-    float duration = diff.length() / speed;
+    if (!frames.empty())
+    {
+        auto anim = Animation::createWithSpriteFrames(frames, 0.1f);
+        auto repeat = RepeatForever::create(Animate::create(anim));
+        repeat->setTag(999);
+        this->runAction(repeat);
+    }
+}
 
-    // 限制一下最小移动时间，防止瞬间移动造成的闪烁
-    if (duration < 0.1f) duration = 0.1f;
+void Barbarian::actionAttack()
+{
+    if (!_targetBuilding) return;
 
-    auto move = MoveTo::create(duration, targetPos);
+    // 攻击时依然面向目标
+    Vec2 diff = _targetBuilding->getPosition() - this->getPosition();
 
-    // 移动结束后的回调
-    auto finishMove = CallFunc::create([this, animPrefix]()
+    // 【可选】更新一下方向记录，防止打完转身太突兀
+    _curMoveDir = diff.getNormalized();
+
+    if (diff.x < 0) this->setFlippedX(true);
+    else this->setFlippedX(false);
+
+    std::string animPrefix;
+    if (diff.y > std::abs(diff.x) * 0.5f) animPrefix = "barbarian_upper_attack";
+    else if (diff.y < -std::abs(diff.x) * 0.5f) animPrefix = "barbarian_under_attack";
+    else animPrefix = "barbarian_side_attack";
+
+    Vector<SpriteFrame*> frames;
+    for (int i = 1; i <= 20; i++) // 假设攻击帧比较多
+    {
+        std::string name = StringUtils::format("%s_%02d.png", animPrefix.c_str(), i);
+        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        if (!frame)
         {
+            name = StringUtils::format("%s%02d.png", animPrefix.c_str(), i);
+            frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        }
+        if (frame) frames.pushBack(frame);
+    }
 
-            // 1. 立即停止走路动画
-            this->stopActionByTag(TAG_WALK_ACTION);
+    if (frames.empty()) return;
 
-            // 2. 强制恢复到 07 帧 (静止状态)
-            // 这样不管他刚刚是侧走、上走还是下走，都会停在对应的 "07" 姿势上
-            std::string idleFrameName = StringUtils::format("%s_07.png", animPrefix.c_str());
-            this->setSpriteFrame(idleFrameName);
+    Animation* animation = Animation::createWithSpriteFrames(frames, 0.05f);
+    Animate* animate = Animate::create(animation);
 
-            // 3. 休息逻辑 (休息时保持 07 的样子)
-            auto delay = DelayTime::create(1.0f + CCRANDOM_0_1() * 2.0f);
-            auto next = CallFunc::create([this]()
-                {
-                    this->actionWalk(); // 再次出发
-                });
-
-            this->runAction(Sequence::create(delay, next, nullptr));
+    auto doDamage = CallFunc::create([this]()
+        {
+            if (_targetBuilding && _targetBuilding->getParent())
+            {
+                _targetBuilding->takeDamage(20);
+            }
         });
 
-    this->runAction(Sequence::create(move, finishMove, nullptr));
+    auto seq = Sequence::create(animate, doDamage, DelayTime::create(0.1f), nullptr);
+    auto repeat = RepeatForever::create(seq);
+    repeat->setTag(999);
+    this->runAction(repeat);
 }
