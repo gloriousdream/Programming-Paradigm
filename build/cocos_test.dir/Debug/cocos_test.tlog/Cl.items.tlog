@@ -1,4 +1,3 @@
-D:\cocos_game\Classes\Cannon.cpp;D:\cocos_game\build\cocos_test.dir\Debug\Cannon.obj
 D:\cocos_game\Classes\AppDelegate.cpp;D:\cocos_game\build\cocos_test.dir\Debug\AppDelegate.obj
 D:\cocos_game\Classes\ArrowTower.cpp;D:\cocos_game\build\cocos_test.dir\Debug\ArrowTower.obj
 D:\cocos_game\Classes\Building.cpp;D:\cocos_game\build\cocos_test.dir\Debug\Building.obj
@@ -18,5 +17,6 @@ D:\cocos_game\Classes\Giant.cpp;D:\cocos_game\build\cocos_test.dir\Debug\Giant.o
 D:\cocos_game\Classes\CoinCollection.cpp;D:\cocos_game\build\cocos_test.dir\Debug\CoinCollection.obj
 D:\cocos_game\Classes\Boomer.cpp;D:\cocos_game\build\cocos_test.dir\Debug\Boomer.obj
 D:\cocos_game\Classes\FightScene.cpp;D:\cocos_game\build\cocos_test.dir\Debug\FightScene.obj
+D:\cocos_game\Classes\Cannon.cpp;D:\cocos_game\build\cocos_test.dir\Debug\Cannon.obj
 D:\cocos_game\proj.win32\main.cpp;D:\cocos_game\build\cocos_test.dir\Debug\main.obj
 D:\cocos_game\cocos2d\cocos\precheader.cpp;D:\cocos_game\build\cocos_test.dir\Debug\precheader.obj

@@ -52,6 +52,8 @@ Soldier* SoldierManager::createSoldier(int type, Vec2 pos)
     {
         soldier->setPosition(pos);
         soldier->setHomePosition(pos); // 保留作为默认值
+
+        _soldiers.pushBack(soldier);
     }
     else
     {
@@ -59,4 +61,19 @@ Soldier* SoldierManager::createSoldier(int type, Vec2 pos)
     }
 
     return soldier;
+}
+
+// 清理死兵的实现
+void SoldierManager::cleanDeadSoldiers()
+{
+    // 倒序遍历，安全删除
+    for (int i = _soldiers.size() - 1; i >= 0; i--)
+    {
+        auto s = _soldiers.at(i);
+        // 如果士兵由于某种原因没有父节点（被移除了），或者血量<=0
+        if (!s || !s->getParent() || s->getHP() <= 0)
+        {
+            _soldiers.erase(i);
+        }
+    }
 }

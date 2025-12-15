@@ -1,5 +1,6 @@
 #include "Cannon.h"
 #include "Soldier.h" 
+#include "SoldierManager.h"
 
 USING_NS_CC;
 
@@ -11,20 +12,17 @@ bool Cannon::init()
     // 2. 加载图集
     SpriteFrameCache::getInstance()->addSpriteFramesWithFile("atlas.plist");
 
-    // 3. 【修复变形】设置 Cannon 本身为底座
+    // 3. 设置 Cannon 本身为底座
     // 使用 setSpriteFrame 会自动把 ContentSize 设置为图片原本的大小
-    // 这样就不会强制拉伸成 128x128 了
     this->setSpriteFrame("cannon_stand.png");
 
-    // 4. 【修复吸附偏移】确保锚点在中心
-    // BuildingManager 是根据中心点计算吸附的，如果锚点不对，位置就会偏
+    // 4. 确保锚点在中心
     this->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
 
     // 5. 创建炮管
     _barrel = Sprite::createWithSpriteFrameName("cannon01.png");
 
     if (_barrel) {
-        // 【修复对齐】
         // 获取底座当前的实际大小
         Size standSize = this->getContentSize();
 
@@ -40,12 +38,12 @@ bool Cannon::init()
         CCLOG("Error: 找不到 cannon01.png");
     }
 
-    // 6. 设置属性 (保持你原来的数值)
+    // 6. 设置属性 
     level = 1;
     maxHP = 400;
     currentHP = maxHP;
 
-    attackDamage = 60;
+    attackDamage = 20;
     attackRange = 250.0f;
     attackRate = 1.5f;
     _cooldownTimer = 0;
@@ -55,7 +53,7 @@ bool Cannon::init()
     upgradeCostGold = 150;
     upgradeCostHoly = 0;
 
-    // 7. 刷新血条 (因为尺寸变了，需要重新计算位置)
+    // 7. 刷新血条 
     this->updateHPBar();
 
     this->scheduleUpdate();
@@ -67,39 +65,76 @@ void Cannon::update(float dt)
     if (_cooldownTimer > 0) {
         _cooldownTimer -= dt;
     }
+    // A. 获取所有士兵
+    auto& soldiers = SoldierManager::getInstance()->getSoldiers();
+
+    // B. 清理一下死掉的兵
+    SoldierManager::getInstance()->cleanDeadSoldiers();
+
+    // C. 寻找最近的敌人
+    Soldier* nearestTarget = nullptr;
+    float minDistance = this->getAttackRange(); // 初始设为攻击范围，超过这个范围的不看
+
+    for (auto soldier : soldiers)
+    {
+        // 双重保险：确保兵活着
+        if (soldier && soldier->getHP() > 0 && soldier->getParent())
+        {
+            float dist = this->getPosition().distance(soldier->getPosition());
+            if (dist < minDistance)
+            {
+                minDistance = dist;
+                nearestTarget = soldier;
+            }
+        }
+    }
+
+    // D. 如果找到了目标
+    if (nearestTarget)
+    {
+        // 1. 始终让炮口对准目标 
+        this->updateBarrelDirection(nearestTarget->getPosition());
+
+        // 2. 尝试开火 (fireAt 内部会检查 _cooldownTimer，所以这里每帧调用没关系)
+        this->fireAt(nearestTarget);
+    }
 }
 
 void Cannon::updateBarrelDirection(Vec2 targetPos)
 {
     if (!_barrel) return;
 
-    Vec2 myPos = this->getPosition();
-    Vec2 diff = targetPos - myPos;
+    Vec2 diff = targetPos - this->getPosition();
 
-    // 计算角度
+    // 1. 标准数学角度：逆时针，0度向右，90度向上
     float angleRad = atan2(diff.y, diff.x);
-    float angleDeg = CC_RADIANS_TO_DEGREES(-angleRad);
+    float angleDeg = CC_RADIANS_TO_DEGREES(angleRad); // -180 到 180
 
-    // 360度切图逻辑 (1 ~ 36)
-    int totalAngle = (int)(angleDeg + 360 + 5);
-    int index = (totalAngle % 360) / 10 + 1;
+    // 2. 转换为 Cocos 角度 (顺时针，0度向右，90度向下)
+    float cocosAngle = -angleDeg;
 
-    if (index > 36) index = 1;
-    if (index < 1) index = 36;
+    // 3. 归一化到 0 ~ 360
+    if (cocosAngle < 0) cocosAngle += 360;
 
-    // 拼接文件名 cannon01.png ~ cannon36.png
+    cocosAngle = 360 - cocosAngle;
+
+    // 5. 计算索引
+    int index = (int)((cocosAngle + 5) / 10) + 1; // +5 用于四舍五入
+
+    // 循环修正
+    if (index > 36) index -= 36;
+    if (index < 1) index = 1;
+
+    // 6. 设置图片
     std::string frameName = StringUtils::format("cannon%02d.png", index);
-
-    // 切换炮管贴图
     auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(frameName);
-    if (frame) {
-        _barrel->setSpriteFrame(frame);
+    if (!frame) {
+        frameName = StringUtils::format("cannon%d.png", index);
+        frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(frameName);
     }
+    if (frame) _barrel->setSpriteFrame(frame);
 }
 
-// ==========================================
-// 【绝对没有修改】保留你原本的开火逻辑
-// ==========================================
 bool Cannon::fireAt(Soldier* target)
 {
     if (_cooldownTimer > 0) return false;
@@ -163,12 +198,12 @@ void Cannon::upgrade()
     // 升级逻辑：提升属性
     if (level == 2) {
         maxHP = 550;
-        attackDamage = 90;
+        attackDamage = 35;
         upgradeCostGold = 300;
     }
     else if (level == 3) {
         maxHP = 750;
-        attackDamage = 130;
+        attackDamage = 50;
         upgradeCostGold = 0;
     }
 

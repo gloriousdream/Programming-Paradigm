@@ -13,7 +13,70 @@ bool Soldier::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     _moveArea = Rect(0, 0, visibleSize.width, visibleSize.height);
 
+    // ==========================================
+    // 【新增】参照 Building::init 创建血条
+    // ==========================================
+    hpBar = DrawNode::create();
+    this->addChild(hpBar, 10); // 层级10，确保显示在最上层
+    updateHPBar();
+
     return true;
+}
+
+// ==========================================
+// 【新增】参照 Building::updateHPBar 实现
+// 唯一的区别：fillColor 是红色
+// ==========================================
+void Soldier::updateHPBar()
+{
+    if (!hpBar) return;
+    hpBar->clear();
+
+    // 保护：如果图片还没加载，尺寸可能为0
+    Size size = getContentSize();
+    if (size.width <= 0) size = Size(64, 64); // 默认防崩溃尺寸
+
+    // 1. 计算尺寸和位置 (完全照搬 Building 逻辑)
+    float width = size.width * 0.8f;  // 血条宽度占 80%
+    float height = 6;                 // 高度 6
+    float x = (size.width - width) / 2;
+    float y = size.height + 5;        // 显示在上方 5 像素
+
+    // 2. 计算比例
+    float hpPercent = (float)currentHP / (float)maxHP;
+    if (hpPercent < 0) hpPercent = 0;
+    if (hpPercent > 1) hpPercent = 1;
+
+    // 3. 设置颜色
+    Color4F backColor(0.3f, 0.3f, 0.3f, 1.0f); // 灰色背景 (同 Building)
+    Color4F fillColor(1.0f, 0.0f, 0.0f, 1.0f); // 【红色】前景 (Building 是绿色)
+
+    // 4. 绘制
+    // 背景灰色矩形
+    hpBar->drawSolidRect(Vec2(x, y), Vec2(x + width, y + height), backColor);
+    // 当前血量红色矩形
+    hpBar->drawSolidRect(Vec2(x, y), Vec2(x + width * hpPercent, y + height), fillColor);
+}
+
+// ==========================================
+// 【修改】参照 Building::takeDamage 实现
+// ==========================================
+void Soldier::takeDamage(int dmg)
+{
+    currentHP -= dmg;
+    if (currentHP < 0) currentHP = 0;
+
+    // 刷新血条
+    updateHPBar();
+
+    // 死亡逻辑
+    if (currentHP <= 0)
+    {
+        // 停止动作
+        stopAllActions();
+        // 从父节点移除
+        this->removeFromParentAndCleanup(true);
+    }
 }
 
 void Soldier::setHomePosition(Vec2 pos) { this->homePosition = pos; }
@@ -22,7 +85,6 @@ void Soldier::setMoveArea(const Rect& area) { this->_moveArea = area; }
 void Soldier::setTargetBuilding(Building* building)
 {
     _targetBuilding = building;
-    // 重置状态为 IDLE，确保下一帧 update 能检测到移动并触发 actionWalk
     _state = SoldierState::IDLE;
 }
 
@@ -30,14 +92,12 @@ void Soldier::setPath(const std::vector<Vec2>& pathPoints)
 {
     _path = pathPoints;
     _currentPathIndex = 0;
-    // 【关键】同上，重置状态
     _state = SoldierState::IDLE;
 }
 
 void Soldier::updateSoldierLogic(float dt)
 {
     // 1. 目标状态校验
-    // 如果目标刚死，或者已经被移除
     if (_targetBuilding && (_targetBuilding->getParent() == nullptr))
     {
         _targetBuilding = nullptr;
@@ -45,12 +105,10 @@ void Soldier::updateSoldierLogic(float dt)
         _state = SoldierState::IDLE;
     }
 
-    // 2. 如果没有目标，尝试寻找目标 (核心修复区域)
+    // 2. 如果没有目标，尝试寻找目标
     if (!_targetBuilding)
     {
         auto scene = Director::getInstance()->getRunningScene();
-
-        // 只有在【战斗场景】才需要自动索敌
         auto fightScene = dynamic_cast<FightScene*>(scene);
         if (fightScene)
         {
@@ -58,7 +116,6 @@ void Soldier::updateSoldierLogic(float dt)
 
             if (newTarget)
             {
-                // 找到了新目标 -> 设置目标，计算路径
                 this->setTargetBuilding(newTarget);
                 Vec2 attackPos = fightScene->findBestAttackPosition(this->getPosition(), newTarget);
                 auto path = fightScene->findPath(this->getPosition(), attackPos);
@@ -66,26 +123,18 @@ void Soldier::updateSoldierLogic(float dt)
             }
             else
             {
-              
-                // 在战斗场景中，如果 getPriorityTarget 返回空，说明全图都被推平了。
-                // 此时必须强制 return，防止代码往下执行到“巡逻逻辑”。
-
+                // 全图推平，停止行动
                 if (_state != SoldierState::IDLE)
                 {
                     stopAllActions();
                     _state = SoldierState::IDLE;
                 }
-                return; // 这一行阻止了士兵去巡逻
+                return;
             }
-        }
-        else
-        {
-            // 如果不是 FightScene (比如是在自家兵营 GameScene)，
-            // 没有目标时，允许代码往下执行，进入“巡逻逻辑”。
         }
     }
 
-    // 3. 战斗执行逻辑 (移动 / 攻击)
+    // 3. 战斗执行逻辑
     if (_targetBuilding)
     {
         float distToTarget = this->getPosition().distance(_targetBuilding->getPosition());
@@ -115,7 +164,6 @@ void Soldier::updateSoldierLogic(float dt)
 
             Vec2 direction = (currentWaypoint - this->getPosition()).getNormalized();
 
-            // 拐弯检测
             float dot = _curMoveDir.dot(direction);
             bool directionChanged = (dot < 0.5f) || (_curMoveDir.x * direction.x < 0);
             _curMoveDir = direction;
@@ -134,7 +182,6 @@ void Soldier::updateSoldierLogic(float dt)
                 this->actionWalk();
             }
 
-            // 简单翻转
             if (direction.x < 0) this->setFlippedX(true);
             else this->setFlippedX(false);
 
@@ -161,11 +208,10 @@ void Soldier::updateSoldierLogic(float dt)
         }
     }
 
-   
-    // 4. 巡逻模式 (仅在 非战斗场景 或 找不到FightScene时 执行)
-    // 这里的逻辑现在只有在 GameScene (家园) 里才会触发
+    // 4. 巡逻模式
     updatePatrolLogic(dt);
 }
+
 void Soldier::updatePatrolLogic(float dt)
 {
     if (_isPatrolMoving)
@@ -204,17 +250,5 @@ void Soldier::updatePatrolLogic(float dt)
             _patrolTarget = Vec2(randX, randY);
             _isPatrolMoving = true;
         }
-    }
-}
-
-void Soldier::takeDamage(int dmg)
-{
-    _hp -= dmg;
-    if (_hp <= 0)
-    {
-        _hp = 0;
-        // 死亡逻辑：停止动作，把自己从父节点移除
-        this->stopAllActions();
-        this->removeFromParent();
     }
 }
