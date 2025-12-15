@@ -8,6 +8,7 @@
 #include "ArrowTower.h"
 #include "TownHall.h"
 #include "CoinCollection.h"
+#include "Cannon.h"
 
 class BuildingManager
 {

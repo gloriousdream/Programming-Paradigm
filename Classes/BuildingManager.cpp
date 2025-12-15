@@ -131,13 +131,17 @@ Building* BuildingManager::createBuilding(int type, Vec2 pos)
         case 3: building = ArrowTower::create(); break;
         case 4: building = TownHall::create(); break;
         case 5: building = CoinCollection::create(); break;
+        case 6: building = Cannon::create(); break;
         default: return nullptr;
     }
 
     int size = getBuildingGridSize(type);
     Vec2 p = snapToGrid(pos, size);
     building->setPosition(p);
-    building->setContentSize(Size(TILE * size, TILE * size));
+    if (type != 6)
+    {
+        building->setContentSize(Size(TILE * size, TILE * size));
+    }
 
     occupyGrid(pos, type);
 

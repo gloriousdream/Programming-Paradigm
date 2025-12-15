@@ -7,6 +7,8 @@
 #include "WaterCollection.h"
 #include "CoinCollection.h"
 #include "SoldierManager.h"
+#include "Cannon.h"
+
 USING_NS_CC;
 
 Scene* FightScene::createScene(int difficulty)
@@ -29,6 +31,7 @@ FightScene* FightScene::create(int difficulty)
         return nullptr;
     }
 }
+
 // 辅助：判断格子是否有效
 bool FightScene::isValidGrid(int x, int y)
 {
@@ -43,7 +46,6 @@ bool FightScene::isGridBlocked(int x, int y)
 }
 
 // 寻找最佳攻击站位
-// 目标：找到目标建筑周围一圈中，离我最近的那个空闲格子
 Vec2 FightScene::findBestAttackPosition(Vec2 startPos, Building* targetBuilding)
 {
     if (!targetBuilding) return startPos;
@@ -53,7 +55,6 @@ Vec2 FightScene::findBestAttackPosition(Vec2 startPos, Building* targetBuilding)
     int gridX = targetCenter.x / TILE_SIZE;
     int gridY = targetCenter.y / TILE_SIZE;
 
-   
     int size = 2;
     if (dynamic_cast<TownHall*>(targetBuilding)) size = 3;
 
@@ -141,17 +142,22 @@ std::vector<Vec2> FightScene::findPath(Vec2 startWorldPos, Vec2 targetWorldPos)
             int nx = current->x + dir[i][0];
             int ny = current->y + dir[i][1];
 
-           
             if (isGridBlocked(nx, ny)) continue;
 
             // 是否在 CloseList
             bool inClosed = false;
-            for (auto node : closedList) if (node->x == nx && node->y == ny) inClosed = true;
+            for (auto node : closedList)
+            {
+                if (node->x == nx && node->y == ny) inClosed = true;
+            }
             if (inClosed) continue;
 
             // 是否在 OpenList
             AStarNode* neighbor = nullptr;
-            for (auto node : openList) if (node->x == nx && node->y == ny) neighbor = node;
+            for (auto node : openList)
+            {
+                if (node->x == nx && node->y == ny) neighbor = node;
+            }
 
             int newG = current->g + 1; // 假设每格代价 1
 
@@ -191,6 +197,7 @@ std::vector<Vec2> FightScene::findPath(Vec2 startWorldPos, Vec2 targetWorldPos)
 
     return path;
 }
+
 void FightScene::showDeployMenu()
 {
     if (_deployMenuLayer) return;
@@ -212,9 +219,7 @@ void FightScene::showDeployMenu()
     title->setPosition(Vec2(visibleSize.width / 2, visibleSize.height - 150));
     _deployMenuLayer->addChild(title);
 
-   
-
-    // 定义兵种数据：图片路径, 兵种类型ID, 兵种名称
+    // 定义兵种数据
     struct SoldierOption
     {
         std::string img;
@@ -222,29 +227,25 @@ void FightScene::showDeployMenu()
         std::string name;
     };
 
-   
     std::vector<SoldierOption> options = {
-        {"yemanren_select.png", 1, "Barbarian"}, // 类型1
-        {"juren_select.png",     2, "Giant"},     // 类型2
-        {"gongjianshou_select.png",    3, "Archer"},    // 类型3
-        {"boom_select.png",    4, "Bomber"}     // 类型4
+        {"yemanren_select.png", 1, "Barbarian"},
+        {"juren_select.png",     2, "Giant"},
+        {"gongjianshou_select.png",    3, "Archer"},
+        {"boom_select.png",    4, "Bomber"}
     };
 
     Vector<MenuItem*> items;
     for (const auto& opt : options)
     {
-        
         auto item = MenuItemImage::create(
             opt.img,
             opt.img,
             [=](Ref* sender)
             {
-                // 点击后的逻辑
                 this->onSelectSoldier(opt.type);
             }
         );
 
-        
         item->setScale(1.2f);
 
         // 在图标下方加个名字
@@ -262,27 +263,26 @@ void FightScene::showDeployMenu()
         {
             this->hideDeployMenu();
         });
-    // 把关闭按钮放在最下面
     closeItem->setPosition(Vec2(visibleSize.width / 2, 100));
 
     // 4. 将兵种按钮放入菜单
     auto menu = Menu::createWithArray(items);
-    menu->alignItemsHorizontallyWithPadding(50); // 按钮间隔 50 像素
+    menu->alignItemsHorizontallyWithPadding(50);
     menu->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
 
-    // 把关闭按钮也加进去，或者单独建一个菜单
     auto closeMenu = Menu::create(closeItem, nullptr);
     closeMenu->setPosition(Vec2::ZERO);
 
     _deployMenuLayer->addChild(menu);
     _deployMenuLayer->addChild(closeMenu);
 }
+
 void FightScene::initBattleUI()
 {
     auto visibleSize = Director::getInstance()->getVisibleSize();
 
     auto item = MenuItemImage::create(
-        "AttackButton.png",  
+        "AttackButton.png",
         "AttackButton.png",
         [=](Ref* sender)
         {
@@ -290,16 +290,15 @@ void FightScene::initBattleUI()
         }
     );
 
-  
-
     // 设置按钮在屏幕左中的位置
-    item->setPosition(Vec2(visibleSize.width-100, visibleSize.height/2));
+    item->setPosition(Vec2(visibleSize.width - 100, visibleSize.height / 2));
 
     // 创建菜单容器并添加进去
     auto menu = Menu::create(item, nullptr);
     menu->setPosition(Vec2::ZERO);
     this->addChild(menu, 100);
 }
+
 void FightScene::onSelectSoldier(int type)
 {
     // 1. 记录选中的兵种
@@ -309,8 +308,20 @@ void FightScene::onSelectSoldier(int type)
 
     // 2. 关闭界面
     hideDeployMenu();
-
 }
+
+// 【新增】添加士兵的接口
+void FightScene::addSoldier(Soldier* soldier)
+{
+    if (!soldier) return;
+
+    // 1. 加到场景显示 (Z轴设为15，盖在地面上)
+    this->addChild(soldier, 15);
+
+    // 2. 加到逻辑列表 (给加农炮索敌用)
+    _mySoldiers.pushBack(soldier);
+}
+
 void FightScene::onMapClick(Vec2 pos)
 {
     if (_selectedSoldierType == 0) return;
@@ -318,7 +329,9 @@ void FightScene::onMapClick(Vec2 pos)
     auto soldier = SoldierManager::getInstance()->createSoldier(_selectedSoldierType, pos);
     if (soldier)
     {
-        this->addChild(soldier, 15);
+        // 【关键修改】使用 addSoldier 替代原来的 addChild
+        // 这样加农炮才能识别到这个士兵
+        this->addSoldier(soldier);
 
         // 1. 找攻击目标
         Building* target = getPriorityTarget(pos);
@@ -345,6 +358,7 @@ void FightScene::onMapClick(Vec2 pos)
         }
     }
 }
+
 void FightScene::hideDeployMenu()
 {
     if (_deployMenuLayer)
@@ -353,11 +367,13 @@ void FightScene::hideDeployMenu()
         _deployMenuLayer = nullptr;
     }
 }
+
 bool FightScene::init()
 {
     if (!Scene::init()) return false;
     return true;
 }
+
 void FightScene::initTouchListener()
 {
     auto listener = EventListenerTouchOneByOne::create();
@@ -370,6 +386,7 @@ void FightScene::initTouchListener()
         };
     _eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 }
+
 bool FightScene::initWithDifficulty(int difficulty)
 {
     if (!Scene::init()) return false;
@@ -421,9 +438,58 @@ bool FightScene::initWithDifficulty(int difficulty)
     // 4. 生成敌人基地
     generateLevel();
     initBattleUI();
-    initTouchListener();//监听草地点击
+    initTouchListener(); //监听草地点击
+
+    // 【新增】开启帧更新，让加农炮能攻击
+    this->scheduleUpdate();
+
     return true;
 }
+
+// 【新增】每帧更新逻辑
+void FightScene::update(float dt)
+{
+    // 1. 清理已死亡的士兵 (倒序遍历)
+    for (int i = _mySoldiers.size() - 1; i >= 0; i--)
+    {
+        Soldier* s = _mySoldiers.at(i);
+        // 如果士兵已经被移出父节点 或 血量归零
+        if (s->getParent() == nullptr || s->getHP() <= 0)
+        {
+            _mySoldiers.erase(i);
+        }
+    }
+
+    // 2. 遍历敌方建筑，让防御塔攻击
+    for (auto building : _enemyBuildings)
+    {
+        // 判断是否为加农炮
+        Cannon* cannon = dynamic_cast<Cannon*>(building);
+        if (cannon)
+        {
+            // 寻找最近的士兵
+            Soldier* target = nullptr;
+            float minDistance = cannon->getAttackRange();
+
+            for (auto soldier : _mySoldiers)
+            {
+                float dist = cannon->getPosition().distance(soldier->getPosition());
+                if (dist < minDistance)
+                {
+                    minDistance = dist;
+                    target = soldier;
+                }
+            }
+
+            // 如果找到目标，开火 (Cannon::fireAt 内部处理冷却和动画)
+            if (target)
+            {
+                cannon->fireAt(target);
+            }
+        }
+    }
+}
+
 // 实现索敌逻辑
 Building* FightScene::getPriorityTarget(Vec2 soldierPos)
 {
@@ -434,15 +500,19 @@ Building* FightScene::getPriorityTarget(Vec2 soldierPos)
     // 遍历所有敌方建筑
     for (auto building : _enemyBuildings)
     {
-        
         if (!building || building->getParent() == nullptr) continue;
 
         // 1. 确定当前建筑的优先级
         int priority = 1;
-       
+
         if (dynamic_cast<ArrowTower*>(building))
         {
             priority = 3; // 最高优先级：先拆塔
+        }
+        // 【新增】加农炮也是最高优先级
+        else if (dynamic_cast<Cannon*>(building))
+        {
+            priority = 3;
         }
         else if (dynamic_cast<TownHall*>(building))
         {
@@ -473,6 +543,7 @@ Building* FightScene::getPriorityTarget(Vec2 soldierPos)
 
     return bestTarget;
 }
+
 void FightScene::generateLevel()
 {
     // 1. 初始化
@@ -482,9 +553,11 @@ void FightScene::generateLevel()
     // 2. 难度设定
     int targetLevel = 1;
     int arrowTowerCount = 0;
-    if (_difficulty == 1) { targetLevel = 1; arrowTowerCount = 1; }
-    else if (_difficulty == 2) { targetLevel = 2; arrowTowerCount = 2; }
-    else if (_difficulty == 3) { targetLevel = 3; arrowTowerCount = 2; }
+    int cannonCount = 0; // 【新增】加农炮数量
+
+    if (_difficulty == 1) { targetLevel = 1; arrowTowerCount = 1; cannonCount = 0; }
+    else if (_difficulty == 2) { targetLevel = 2; arrowTowerCount = 1; cannonCount = 1; }
+    else if (_difficulty == 3) { targetLevel = 3; arrowTowerCount = 2; cannonCount = 1; }
 
     // 第一步：放置大本营 (TownHall 3x3)
     auto townHall = TownHall::create();
@@ -513,6 +586,11 @@ void FightScene::generateLevel()
 
     for (int i = 0; i < arrowTowerCount; i++) {
         pendingBuildings.push_back(ArrowTower::create());
+    }
+
+    // 【新增】将加农炮加入待生成列表
+    for (int i = 0; i < cannonCount; i++) {
+        pendingBuildings.push_back(Cannon::create());
     }
 
     // 第三步：生成候选坐标 
@@ -609,6 +687,7 @@ bool FightScene::isAreaFree(int gridX, int gridY, int width, int height)
 
     return true;
 }
+
 // 标记网格区域为占用
 void FightScene::markArea(int gridX, int gridY, int width, int height)
 {

@@ -39,6 +39,7 @@ static std::string getBuildingTexturePath(int type)
         case 3: return "ArrowTower.png";
         case 4: return "TownHall.png";
         case 5: return "CoinCollection.png";
+        case 6: return "cannon_stand.png";
         default: return "CloseNormal.png";
     }
 }
@@ -242,8 +243,8 @@ void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
         }
     );
 
-    // ⭐ 满级 → 自动居中
-    // ⭐ 未满级 → 在右侧显示
+    // 满级 → 自动居中
+    // 未满级 → 在右侧显示
     Vec2 trainPos = isMaxLv ?
         Vec2(0, buildingSize.height / 2 + 50) :
         Vec2(50, buildingSize.height / 2 + 50);
@@ -354,9 +355,7 @@ void GameScene::showTrainMenu(cocos2d::Sprite* building)
             // 3. 构建矩形 (原点在左下角，所以减去宽高的一半)
             Rect patrolArea(centerX - areaW / 2, centerY - areaH / 2, areaW, areaH);
 
-            // -----------------------------------------------------------
             // [生成士兵]
-            // -----------------------------------------------------------
             for (int i = 0; i < amount; i++)
             {
                 // 在 patrolArea 这个小方块内随机取一个点作为出生点
@@ -463,42 +462,101 @@ void GameScene::showUpgradeButton(Sprite* building)
     }
     currentBuildingMenu = building;
 }
+
 // 点击建筑建造按钮
 void GameScene::onBuildButtonPressed()
 {
+    // 1. 防止重复打开菜单
     auto existingMenu = this->getChildByName("BUILD_MENU_NODE");
     if (existingMenu) {
         existingMenu->removeFromParent();
         return;
     }
 
+    // 2. 创建建造菜单
     auto menu = BuildMenu::createMenu();
     menu->setName("BUILD_MENU_NODE");
     this->addChild(menu, 100);
 
+    // 3. 定义菜单点击回调
     menu->onSelectBuilding = [menu, this](int type) {
         this->selectedType = type;
+
+        // 进入建造模式
         this->placeModebuild = true;
         this->placeModesoldier = false;
 
+        // 移除旧虚影
         if (this->ghostSprite) {
             this->ghostSprite->removeFromParent();
             this->ghostSprite = nullptr;
         }
 
-        std::string imgPath = getBuildingTexturePath(type);
-        this->ghostSprite = Sprite::create(imgPath);
-        if (this->ghostSprite) {
-            this->ghostSprite->setOpacity(128);
-            auto winSize = Director::getInstance()->getWinSize();
-            this->ghostSprite->setPosition(winSize.width / 2, winSize.height / 2);
-            this->addChild(this->ghostSprite, 1000);
+        // ==========================================
+        // 【核心修改】针对加农炮 (Type 6)
+        // ==========================================
+        if (type == 6) {
+            CCLOG("GameScene: 正在创建加农炮虚影...");
+
+            // A. 必须先加载 plist
+            // 确保 atlas.plist 和 atlas.png 都在 build/bin/Debug/Resources 里
+            SpriteFrameCache::getInstance()->addSpriteFramesWithFile("atlas.plist");
+
+            // B. 【关键】优先使用底座 (cannon_stand.png)
+            // 炮管(cannon01.png)太细了可能看不清，底座大，更容易看到
+            this->ghostSprite = Sprite::createWithSpriteFrameName("cannon_stand.png");
+
+            // C. 如果找不到底座，尝试找炮管
+            if (!this->ghostSprite) {
+                CCLOG("GameScene: 没找到底座，尝试使用炮管...");
+                this->ghostSprite = Sprite::createWithSpriteFrameName("cannon01.png");
+            }
+
+            // D. 【绝杀】如果还是找不到，创建一个显眼的红色方块！
+            // 如果你看到红色方块，说明代码没问题，是 atlas.plist 文件没放对位置
+            if (!this->ghostSprite) {
+                CCLOG("GameScene: 【严重错误】无法创建虚影！显示红色方块警告。");
+                this->ghostSprite = Sprite::create();
+                this->ghostSprite->setTextureRect(Rect(0, 0, 80, 80)); // 80x80的大方块
+                this->ghostSprite->setColor(Color3B::RED);
+            }
+        }
+        else {
+            // --- 其他普通建筑 ---
+            std::string imgPath = getBuildingTexturePath(type);
+            this->ghostSprite = Sprite::create(imgPath);
+
+            // 普通建筑的保底
+            if (!this->ghostSprite) {
+                this->ghostSprite = Sprite::create();
+                this->ghostSprite->setTextureRect(Rect(0, 0, 60, 60));
+                this->ghostSprite->setColor(Color3B::MAGENTA); // 紫色方块表示普通图片缺失
+            }
         }
 
-        CCLOG("已选择建筑 %d, 进入放置模式", type);
+        // 4. 设置虚影位置
+        if (this->ghostSprite) {
+            this->ghostSprite->setOpacity(128); // 半透明
+
+            // 【关键修改】使用 getVisibleSize 确保一定在屏幕视野正中间
+            // 之前用 WinSize 可能会导致图片偏离屏幕
+            auto visibleSize = Director::getInstance()->getVisibleSize();
+            Vec2 origin = Director::getInstance()->getVisibleOrigin();
+
+            // 屏幕中心坐标 = 原点 + 宽高的一半
+            Vec2 centerPos = Vec2(origin.x + visibleSize.width / 2, origin.y + visibleSize.height / 2);
+
+            this->ghostSprite->setPosition(centerPos);
+            this->addChild(this->ghostSprite, 1000);
+
+            CCLOG("虚影已创建，位置: (%f, %f)", centerPos.x, centerPos.y);
+        }
+
+        // 关闭菜单
         menu->removeFromParent();
         };
 }
+
 void GameScene::onFightpushed()
 {
     // 如果菜单已经打开了，就把它关掉
@@ -603,6 +661,7 @@ void GameScene::onMapClicked(Vec2 pos)
             case 3: costGold = 70; costHoly = 40; break; // ArrowTower
             case 4: costGold = 150; costHoly = 100; break; // TownHall
             case 5: costGold = 20; costHoly = 80; break; // CoinCollection
+            case 6: costGold = 200; costHoly = 0; break; // Cannon
         }
 
         // 检查资源

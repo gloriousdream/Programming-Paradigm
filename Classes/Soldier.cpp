@@ -206,3 +206,15 @@ void Soldier::updatePatrolLogic(float dt)
         }
     }
 }
+
+void Soldier::takeDamage(int dmg)
+{
+    _hp -= dmg;
+    if (_hp <= 0)
+    {
+        _hp = 0;
+        // 死亡逻辑：停止动作，把自己从父节点移除
+        this->stopAllActions();
+        this->removeFromParent();
+    }
+}

@@ -29,6 +29,10 @@ public:
     // 获取当前瞬间的移动方向（供子类 Barbarian/Archer 等决定播放哪个面的动画）
     cocos2d::Vec2 getCurrentDirection() const { return _curMoveDir; }
 
+    void setHP(int hp) { _hp = hp; _maxHp = hp; }
+    int getHP() const { return _hp; }
+    void takeDamage(int dmg); // 声明受伤函数
+
 protected:
     cocos2d::Vec2 homePosition;
     cocos2d::Rect _moveArea;
@@ -50,6 +54,9 @@ protected:
 
     void updateSoldierLogic(float dt);
     void updatePatrolLogic(float dt);
+
+    int _hp = 0;
+    int _maxHp = 0;
 };
 
 #endif

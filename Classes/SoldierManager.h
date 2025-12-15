@@ -1,4 +1,3 @@
-#pragma once
 #include "cocos2d.h"
 #include <vector>
 #include "Soldier.h"
