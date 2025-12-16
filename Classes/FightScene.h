@@ -5,7 +5,8 @@
 #include "Building.h"
 #include "Cannon.h"   
 #include "Soldier.h"
-
+#include "GoldStage.h"
+#include "ElixirTank.h"
 // 定义一个简单的结构体用于 A* 算法
 struct AStarNode
 {
@@ -55,7 +56,9 @@ private:
 
     // 检查某个区域是否空闲
     bool isAreaFree(int gridX, int gridY, int width, int height);
-
+    cocos2d::Label* _goldLabel = nullptr;
+    cocos2d::Label* _holyLabel = nullptr;
+    void updateResourceUI();
     // 标记某个区域为占用
     void markArea(int gridX, int gridY, int width, int height);
 

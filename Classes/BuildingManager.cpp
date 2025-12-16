@@ -132,6 +132,8 @@ Building* BuildingManager::createBuilding(int type, Vec2 pos)
         case 4: building = TownHall::create(); break;
         case 5: building = CoinCollection::create(); break;
         case 6: building = Cannon::create(); break;
+        case 7: building = GoldStage::create(); break;
+        case 8: building = ElixirTank::create(); break;
         default: return nullptr;
     }
 

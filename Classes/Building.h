@@ -12,7 +12,7 @@ public:
     int getHP() const { return currentHP; }
     int getMaxHP() const { return maxHP; }
     int getLevel() const { return level; }
-    void takeDamage(int dmg);   // 受伤
+    virtual void takeDamage(int dmg);   // 受伤
     void updateHPBar();         // 更新血条显示
 
     // 建造 / 升级 消耗（子类在 init 中赋值）

@@ -9,7 +9,8 @@
 #include "TownHall.h"
 #include "CoinCollection.h"
 #include "Cannon.h"
-
+#include "GoldStage.h"
+#include "ElixirTank.h"
 class BuildingManager
 {
 public:

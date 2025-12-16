@@ -8,7 +8,8 @@
 #include "FightScene.h"
 
 USING_NS_CC;
-
+int GameScene::gold = 1000;       // 初始金币
+int GameScene::holyWater = 500;   // 初始圣水
 struct SoldierConfig
 {
     std::string name;
@@ -16,7 +17,25 @@ struct SoldierConfig
     int costHolyWater; // 圣水消耗
     int popSpace;      // 占用人口
 };
+int GameScene::getGlobalGold()
+{
+    return gold;
+}
 
+int GameScene::getGlobalHolyWater()
+{
+    return holyWater;
+}
+
+void GameScene::addGlobalResources(int addGold, int addHoly)
+{
+    gold += addGold;
+    holyWater += addHoly;
+
+    // 简单的防溢出或防负数保护
+    if (gold < 0) gold = 0;
+    if (holyWater < 0) holyWater = 0;
+}
 // 辅助函数：获取兵种配置
 static SoldierConfig getSoldierConfig(int type)
 {
@@ -40,10 +59,19 @@ static std::string getBuildingTexturePath(int type)
         case 4: return "TownHall.png";
         case 5: return "CoinCollection.png";
         case 6: return "cannon_stand.png";
+        case 7: return "gold_stage_05.png";
+        case 8: return "elixir_tank_05.png";
         default: return "CloseNormal.png";
     }
 }
+void GameScene::onEnter()
+{
+    // 1. 必须先调用父类的 onEnter 
+    Scene::onEnter();
 
+    // 2. 每次回到这个场景，都强制刷新一次 UI
+    this->updateResourceDisplay();
+}
 Scene* GameScene::createScene()
 {
     return GameScene::create();
@@ -123,7 +151,7 @@ bool GameScene::init()
         if (placeModebuild && ghostSprite)
         {
             EventMouse* e = (EventMouse*)event;
-            // 直接使用 getLocationInView 即可（根据你的反馈不需要翻转）
+            // 直接使用 getLocationInView 即可
             Vec2 temp = e->getLocationInView();
             Vec2 mousePos = Vec2(temp.x, temp.y);
 
@@ -176,6 +204,26 @@ void GameScene::updateResourceDisplay()
     if (goldLabel) goldLabel->setString(std::to_string(gold));
     if (waterLabel) waterLabel->setString(std::to_string(holyWater));
     if (populationLabel) populationLabel->setString(std::to_string(population) + "/100");
+    int playerMaxGold = 1000;
+    int playerMaxHoly = 1000;
+    // 遍历场景所有子节点
+    auto children = this->getChildren();
+    for (auto node : children)
+    {
+        // 尝试将其转换为 GoldStage
+        auto goldStage = dynamic_cast<GoldStage*>(node);
+        if (goldStage)
+        {
+            // 如果转换成功，说明这个建筑是金库，调用更新函数
+            goldStage->updateVisuals(this->gold, playerMaxGold);
+        }
+        auto elixirTank = dynamic_cast<ElixirTank*>(node);
+        if (elixirTank)
+        {
+            // 传入当前的 holyWater 和 上限
+            elixirTank->updateVisuals(this->holyWater, playerMaxHoly);
+        }
+    }
 }
 
 void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
@@ -492,9 +540,6 @@ void GameScene::onBuildButtonPressed()
             this->ghostSprite = nullptr;
         }
 
-        // ==========================================
-        // 【核心修改】针对加农炮 (Type 6)
-        // ==========================================
         if (type == 6) {
             CCLOG("GameScene: 正在创建加农炮虚影...");
 
@@ -502,7 +547,7 @@ void GameScene::onBuildButtonPressed()
             // 确保 atlas.plist 和 atlas.png 都在 build/bin/Debug/Resources 里
             SpriteFrameCache::getInstance()->addSpriteFramesWithFile("atlas.plist");
 
-            // B. 【关键】优先使用底座 (cannon_stand.png)
+            // B. 优先使用底座 (cannon_stand.png)
             // 炮管(cannon01.png)太细了可能看不清，底座大，更容易看到
             this->ghostSprite = Sprite::createWithSpriteFrameName("cannon_stand.png");
 
@@ -512,7 +557,7 @@ void GameScene::onBuildButtonPressed()
                 this->ghostSprite = Sprite::createWithSpriteFrameName("cannon01.png");
             }
 
-            // D. 【绝杀】如果还是找不到，创建一个显眼的红色方块！
+            // D. 如果还是找不到，创建一个显眼的红色方块！
             // 如果你看到红色方块，说明代码没问题，是 atlas.plist 文件没放对位置
             if (!this->ghostSprite) {
                 CCLOG("GameScene: 【严重错误】无法创建虚影！显示红色方块警告。");

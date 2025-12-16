@@ -1,4 +1,4 @@
-#ifndef __GAME_SCENE_H__
+
 #define __GAME_SCENE_H__
 
 #include "cocos2d.h"
@@ -9,13 +9,15 @@ public:
     static cocos2d::Scene* createScene();
     virtual bool init();
     CREATE_FUNC(GameScene);
-
+    virtual void onEnter() override;
     void onBuildingClicked(cocos2d::Sprite* building);
     void showUpgradeButton(cocos2d::Sprite* building);
     void updateResourceDisplay();
     // 专门显示兵营的操作菜单（升级 + 造兵）
     void showMilitaryOptions(cocos2d::Sprite* building);
-
+    static int getGlobalGold();
+    static int getGlobalHolyWater();
+    static void addGlobalResources(int addGold, int addHoly);
     void showTrainMenu(cocos2d::Sprite* building);
     void showTrainAmountMenu(int soldierType);
 
@@ -24,7 +26,8 @@ private:
     bool placeModebuild = false;
     bool placeModesoldier = false;
     int selectedType = 0;
-
+    static int gold;
+    static int holyWater;
     // 当前显示升级菜单的建筑
     cocos2d::Sprite* currentBuildingMenu = nullptr;
 
@@ -37,8 +40,7 @@ private:
     void closeCurrentPopup();
 
     // 玩家资源
-    int gold = 1000;
-    int holyWater = 500;
+
     int population = 0;
 
     cocos2d::Label* goldLabel = nullptr;
@@ -57,4 +59,4 @@ private:
 
 };
 
-#endif
+

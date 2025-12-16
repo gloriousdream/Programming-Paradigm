@@ -10,11 +10,8 @@ BuildMenu* BuildMenu::createMenu()
 bool BuildMenu::init()
 {
     if (!Layer::init()) return false;
+    //先加载图集！
 
-    // ==========================================
-    // 1. 【必须】先加载图集！
-    // 否则系统找不到 cannon_stand.png
-    // ==========================================
     SpriteFrameCache::getInstance()->addSpriteFramesWithFile("atlas.plist");
 
     auto visibleSize = Director::getInstance()->getVisibleSize();
@@ -43,7 +40,9 @@ bool BuildMenu::init()
         {"ArrowTower.png", 3, 70, 40},
         {"TownHall.png", 4, 150, 100},
         {"CoinCollection.png", 5, 20, 80},
-        {"cannon_stand.png", 6, 200, 0}
+        {"cannon_stand.png", 6, 200, 0},
+        { "gold_stage_05.png", 7, 0, 0 },
+        { "elixir_tank_05.png", 8, 0, 0 }
     };
 
     Vector<MenuItem*> menuItems;

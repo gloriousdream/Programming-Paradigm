@@ -8,7 +8,8 @@
 #include "CoinCollection.h"
 #include "SoldierManager.h"
 #include "Cannon.h"
-
+#include "GoldStage.h"
+#include "ElixirTank.h"
 USING_NS_CC;
 
 Scene* FightScene::createScene(int difficulty)
@@ -373,7 +374,22 @@ bool FightScene::init()
     if (!Scene::init()) return false;
     return true;
 }
+void FightScene::updateResourceUI()
+{
+    // 1. 获取全局互通数据
+    int totalGold = GameScene::getGlobalGold();
+    int totalHoly = GameScene::getGlobalHolyWater();
 
+    // 2. 更新 Label 显示
+    if (_goldLabel)
+    {
+        _goldLabel->setString(std::to_string(totalGold));
+    }
+    if (_holyLabel)
+    {
+        _holyLabel->setString(std::to_string(totalHoly));
+    }
+}
 void FightScene::initTouchListener()
 {
     auto listener = EventListenerTouchOneByOne::create();
@@ -389,6 +405,7 @@ void FightScene::initTouchListener()
 
 bool FightScene::initWithDifficulty(int difficulty)
 {
+    // 1. 必须先调用父类初始化
     if (!Scene::init()) return false;
 
     _difficulty = difficulty;
@@ -396,15 +413,24 @@ bool FightScene::initWithDifficulty(int difficulty)
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
-    // 1. 加载背景
-    auto bg = Sprite::create("GrassBackground.png");
-    if (bg) {
+    // =============================================================
+    // 2. 基础环境 (背景、返回按钮等 - 保持你原来的代码)
+    // =============================================================
+
+    // 背景
+    auto bg = Sprite::create("GrassBackground.png"); // 注意：你这里用的是 GrassBackground
+    if (bg)
+    {
         bg->setAnchorPoint(Vec2::ZERO);
         bg->setPosition(origin);
+        // 如果需要缩放适配
+        float scaleX = visibleSize.width / bg->getContentSize().width;
+        float scaleY = visibleSize.height / bg->getContentSize().height;
+        bg->setScale(std::max(scaleX, scaleY));
         this->addChild(bg, 0);
     }
 
-    // 2. 显示难度文字
+    // 难度文字
     std::string diffText = "";
     if (_difficulty == 1) diffText = "Mode: EASY";
     else if (_difficulty == 2) diffText = "Mode: MIDDLE";
@@ -415,19 +441,21 @@ bool FightScene::initWithDifficulty(int difficulty)
     label->setColor(Color3B::RED);
     this->addChild(label, 100);
 
-    // 3. 返回按钮 (popScene)
+    // 返回按钮
     MenuItem* closeItem = MenuItemImage::create(
         "CloseNormal.png",
         "CloseSelected.png",
-        [](Ref* sender) {
+        [](Ref* sender)
+        {
             Director::getInstance()->popScene();
         });
 
     if (closeItem == nullptr || closeItem->getContentSize().width == 0)
     {
         auto lbl = Label::createWithSystemFont("Back", "Arial", 30);
-        closeItem = MenuItemLabel::create(lbl, [](Ref*) {
-            Director::getInstance()->popScene();
+        closeItem = MenuItemLabel::create(lbl, [](Ref*)
+            {
+                Director::getInstance()->popScene();
             });
     }
     closeItem->setPosition(Vec2(origin.x + visibleSize.width - 50, origin.y + 50));
@@ -435,17 +463,92 @@ bool FightScene::initWithDifficulty(int difficulty)
     menu->setPosition(Vec2::ZERO);
     this->addChild(menu, 100);
 
-    // 4. 生成敌人基地
-    generateLevel();
-    initBattleUI();
-    initTouchListener(); //监听草地点击
+    // =============================================================
+    // 3. 【新增】资源 UI (金币/圣水) - 从 init() 搬过来的
+    // =============================================================
 
-    // 【新增】开启帧更新，让加农炮能攻击
+    // --- 金币图标 ---
+    auto goldSprite = Sprite::create("GoldCoin.png");
+    if (goldSprite)
+    {
+        // 右上角位置
+        goldSprite->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 50));
+        this->addChild(goldSprite, 20);
+    }
+
+    // --- 金币文字 ---
+    int currentGold = GameScene::getGlobalGold();
+    _goldLabel = Label::createWithTTF(std::to_string(currentGold), "fonts/Marker Felt.ttf", 24);
+    if (_goldLabel)
+    {
+        _goldLabel->setAnchorPoint(Vec2(0, 0.5f));
+        if (goldSprite) _goldLabel->setPosition(goldSprite->getPosition() + Vec2(20, 0));
+        else _goldLabel->setPosition(Vec2(visibleSize.width - 80, visibleSize.height - 50));
+        this->addChild(_goldLabel, 20);
+    }
+
+    // --- 圣水图标 ---
+    auto waterSprite = Sprite::create("HolyWater.png");
+    if (waterSprite)
+    {
+        waterSprite->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 90));
+        this->addChild(waterSprite, 20);
+    }
+
+    // --- 圣水文字 ---
+    int currentHoly = GameScene::getGlobalHolyWater();
+    _holyLabel = Label::createWithTTF(std::to_string(currentHoly), "fonts/Marker Felt.ttf", 24);
+    if (_holyLabel)
+    {
+        _holyLabel->setAnchorPoint(Vec2(0, 0.5f));
+        if (waterSprite) _holyLabel->setPosition(waterSprite->getPosition() + Vec2(20, 0));
+        else _holyLabel->setPosition(Vec2(visibleSize.width - 80, visibleSize.height - 90));
+        this->addChild(_holyLabel, 20);
+    }
+
+    // 刷新显示
+    this->updateResourceUI();
+
+    // =============================================================
+    // 4. 【新增】注册掉落监听 - 从 init() 搬过来的
+    // =============================================================
+
+    // 金币监听
+    auto goldListener = EventListenerCustom::create("LOOT_GOLD_EVENT", [this](EventCustom* event)
+        {
+            int* amount = static_cast<int*>(event->getUserData());
+            if (amount)
+            {
+                GameScene::addGlobalResources(*amount, 0);
+                this->updateResourceUI();
+            }
+        });
+    _eventDispatcher->addEventListenerWithSceneGraphPriority(goldListener, this);
+
+    // 圣水监听
+    auto holyListener = EventListenerCustom::create("LOOT_HOLY_EVENT", [this](EventCustom* event)
+        {
+            int* amount = static_cast<int*>(event->getUserData());
+            if (amount)
+            {
+                GameScene::addGlobalResources(0, *amount);
+                this->updateResourceUI();
+            }
+        });
+    _eventDispatcher->addEventListenerWithSceneGraphPriority(holyListener, this);
+
+    // =============================================================
+    // 5. 游戏逻辑初始化 (原有代码)
+    // =============================================================
+    generateLevel();     // 生成建筑
+    initBattleUI();      // 生成出兵按钮
+    initTouchListener(); // 触摸监听
+
+    // 开启 Update (让大炮能开火，且防止崩溃逻辑生效)
     this->scheduleUpdate();
 
     return true;
 }
-
 // 【新增】每帧更新逻辑
 void FightScene::update(float dt)
 {
@@ -550,16 +653,29 @@ void FightScene::generateLevel()
     memset(mapGrid, 0, sizeof(mapGrid));
     _enemyBuildings.clear();
 
-    // 2. 难度设定
+    // 2. 难度设定 (原有逻辑 + 新增资源建筑数量)
     int targetLevel = 1;
     int arrowTowerCount = 0;
-    int cannonCount = 0; // 【新增】加农炮数量
+    int cannonCount = 0;
+    
+    // 【新增】定义要生成的资源建筑数量
+    int goldStageCount = 0;
+    int elixirTankCount = 0;
 
-    if (_difficulty == 1) { targetLevel = 1; arrowTowerCount = 1; cannonCount = 0; }
-    else if (_difficulty == 2) { targetLevel = 2; arrowTowerCount = 1; cannonCount = 1; }
-    else if (_difficulty == 3) { targetLevel = 3; arrowTowerCount = 2; cannonCount = 1; }
+    if (_difficulty == 1) { 
+        targetLevel = 1; arrowTowerCount = 1; cannonCount = 0; 
+        goldStageCount = 1; elixirTankCount = 1; // 简单：各1个
+    }
+    else if (_difficulty == 2) { 
+        targetLevel = 2; arrowTowerCount = 1; cannonCount = 1; 
+        goldStageCount = 2; elixirTankCount = 2; // 中等：各2个
+    }
+    else if (_difficulty == 3) { 
+        targetLevel = 3; arrowTowerCount = 2; cannonCount = 1; 
+        goldStageCount = 3; elixirTankCount = 3; // 困难：各3个
+    }
 
-    // 第一步：放置大本营 (TownHall 3x3)
+    // 第一步：放置大本营 (TownHall 3x3) -- 保持你的原逻辑不动
     auto townHall = TownHall::create();
     setBuildingLevel(townHall, targetLevel);
 
@@ -572,8 +688,10 @@ void FightScene::generateLevel()
     this->addChild(townHall, 10);
     _enemyBuildings.pushBack(townHall);
 
-    // 第二步：准备建筑列表
+    // 第二步：准备建筑列表 -- 将所有要生成的建筑都放进这个列表
     std::vector<Building*> pendingBuildings;
+
+    // 2.1 原有的建筑
     pendingBuildings.push_back(MilitaryCamp::create());
 
     auto water = WaterCollection::create();
@@ -584,16 +702,27 @@ void FightScene::generateLevel()
     coin->setEnemyState(true);
     pendingBuildings.push_back(coin);
 
+    // 2.2 防御塔和加农炮
     for (int i = 0; i < arrowTowerCount; i++) {
         pendingBuildings.push_back(ArrowTower::create());
     }
-
-    // 【新增】将加农炮加入待生成列表
     for (int i = 0; i < cannonCount; i++) {
         pendingBuildings.push_back(Cannon::create());
     }
 
-    // 第三步：生成候选坐标 
+    // 2.3 【新增】金库和水罐 (完全使用相同的生成逻辑)
+    for (int i = 0; i < goldStageCount; i++) {
+        auto gs = GoldStage::create();
+        gs->updateVisuals(5000, 5000); // 设为满资源状态
+        pendingBuildings.push_back(gs);
+    }
+    for (int i = 0; i < elixirTankCount; i++) {
+        auto et = ElixirTank::create();
+        et->updateVisuals(5000, 5000); // 设为满资源状态
+        pendingBuildings.push_back(et);
+    }
+
+    // 第三步：生成候选坐标 (保持你的算法不动)
     struct GridPoint {
         int x, y;
         float distanceScore;
@@ -625,7 +754,7 @@ void FightScene::generateLevel()
         return a.distanceScore < b.distanceScore;
         });
 
-    // 第四步：放置
+    // 第四步：放置 (循环放置 pendingBuildings 里的所有建筑)
     for (auto b : pendingBuildings)
     {
         setBuildingLevel(b, targetLevel);
@@ -634,6 +763,7 @@ void FightScene::generateLevel()
         for (const auto& spot : validSpots)
         {
             // 其他建筑都是 2x2
+            // 这里的 isAreaFree 会自动处理 GoldStage 和 ElixirTank 的位置判断
             if (isAreaFree(spot.x, spot.y, 2, 2))
             {
                 markArea(spot.x, spot.y, 2, 2);
@@ -651,7 +781,6 @@ void FightScene::generateLevel()
         }
     }
 }
-
 // 检查区域是否空闲 (包含 1 格子的安全间距)
 bool FightScene::isAreaFree(int gridX, int gridY, int width, int height)
 {

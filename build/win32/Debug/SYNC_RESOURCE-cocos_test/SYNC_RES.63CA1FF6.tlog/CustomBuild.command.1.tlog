@@ -1,6 +1,6 @@
 ^D:\COCOS_GAME\BUILD\CMAKEFILES\EFA69864CF139B224F83127990CBA897\SYNC_RESOURCE-COCOS_TEST.RULE
 setlocal
-D:\cmake\bin\cmake.exe -E echo "Copying resources for cocos_test ..."
+D:\c++\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe -E echo "Copying resources for cocos_test ..."
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
@@ -10,7 +10,7 @@ exit /b %1
 if %errorlevel% neq 0 goto :VCEnd
 ^D:\COCOS_GAME\CMAKELISTS.TXT
 setlocal
-D:\cmake\bin\cmake.exe -SD:/cocos_game -BD:/cocos_game/build --check-stamp-file D:/cocos_game/build/CMakeFiles/generate.stamp
+D:\c++\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe -SD:/cocos_game -BD:/cocos_game/build --check-stamp-file D:/cocos_game/build/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
