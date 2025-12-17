@@ -13,9 +13,7 @@ bool Soldier::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     _moveArea = Rect(0, 0, visibleSize.width, visibleSize.height);
 
-    // ==========================================
-    // 【新增】参照 Building::init 创建血条
-    // ==========================================
+    // 创建血条
     hpBar = DrawNode::create();
     this->addChild(hpBar, 10); // 层级10，确保显示在最上层
     updateHPBar();
@@ -23,10 +21,7 @@ bool Soldier::init()
     return true;
 }
 
-// ==========================================
-// 【新增】参照 Building::updateHPBar 实现
-// 唯一的区别：fillColor 是红色
-// ==========================================
+// 参照 Building::updateHPBar 实现
 void Soldier::updateHPBar()
 {
     if (!hpBar) return;
@@ -36,7 +31,7 @@ void Soldier::updateHPBar()
     Size size = getContentSize();
     if (size.width <= 0) size = Size(64, 64); // 默认防崩溃尺寸
 
-    // 1. 计算尺寸和位置 (完全照搬 Building 逻辑)
+    // 1. 计算尺寸和位置 
     float width = size.width * 0.8f;  // 血条宽度占 80%
     float height = 6;                 // 高度 6
     float x = (size.width - width) / 2;
@@ -48,8 +43,8 @@ void Soldier::updateHPBar()
     if (hpPercent > 1) hpPercent = 1;
 
     // 3. 设置颜色
-    Color4F backColor(0.3f, 0.3f, 0.3f, 1.0f); // 灰色背景 (同 Building)
-    Color4F fillColor(1.0f, 0.0f, 0.0f, 1.0f); // 【红色】前景 (Building 是绿色)
+    Color4F backColor(0.3f, 0.3f, 0.3f, 1.0f); // 灰色背景 
+    Color4F fillColor(1.0f, 0.0f, 0.0f, 1.0f); // 【红色】前景 
 
     // 4. 绘制
     // 背景灰色矩形
@@ -58,9 +53,6 @@ void Soldier::updateHPBar()
     hpBar->drawSolidRect(Vec2(x, y), Vec2(x + width * hpPercent, y + height), fillColor);
 }
 
-// ==========================================
-// 【修改】参照 Building::takeDamage 实现
-// ==========================================
 void Soldier::takeDamage(int dmg)
 {
     currentHP -= dmg;

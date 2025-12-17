@@ -23,6 +23,8 @@ public:
     bool canPlaceBuilding(cocos2d::Vec2 pos, int type);
     void occupyGrid(cocos2d::Vec2 pos, int type);
 
+    // ÖØÖÃ
+    void reset();
 private:
     BuildingManager();
     bool grid[30][16];

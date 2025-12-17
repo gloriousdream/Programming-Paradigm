@@ -42,7 +42,11 @@ public:
 
 private:
     int _difficulty;
+
+    // 存储地方建筑
     cocos2d::Vector<Building*> _enemyBuildings;
+    // 存储我方士兵
+    cocos2d::Vector<Soldier*> _mySoldiers;
 
     // 地图网格标记：true表示被占用，false表示空闲
     bool mapGrid[30][16];
@@ -88,7 +92,15 @@ private:
     bool isValidGrid(int x, int y);
     bool isGridBlocked(int x, int y);
 
-    cocos2d::Vector<Soldier*> _mySoldiers;
+    float _timeLeft = 120.0f;             // 剩余时间 (秒)
+    cocos2d::Label* _timeLabel = nullptr; // 倒计时显示 Label
+    bool _isGameOver = false;             // 游戏结束标志位
+
+    // 检查游戏胜负状态
+    void checkGameStatus();
+
+    // 显示结算画面
+    void showGameOver(bool isWin);
 };
 
 #endif // __FIGHT_SCENE_H__

@@ -10,6 +10,7 @@
 #include "Cannon.h"
 #include "GoldStage.h"
 #include "ElixirTank.h"
+#include "BuildingManager.h"
 USING_NS_CC;
 
 Scene* FightScene::createScene(int difficulty)
@@ -323,7 +324,7 @@ void FightScene::onSelectSoldier(int type)
     hideDeployMenu();
 }
 
-// 【新增】添加士兵的接口
+// 添加士兵的接口
 void FightScene::addSoldier(Soldier* soldier)
 {
     if (!soldier) return;
@@ -431,22 +432,27 @@ bool FightScene::initWithDifficulty(int difficulty)
     // 1. 必须先调用父类初始化
     if (!Scene::init()) return false;
 
+    SoldierManager::getInstance()->reset();
+    BuildingManager::getInstance()->reset();
+
+    // 清理 FightScene 自己的变量
+    _mySoldiers.clear();
+    _enemyBuildings.clear();
+    memset(mapGrid, 0, sizeof(mapGrid)); // 清空地图墙壁记录
+
     _difficulty = difficulty;
 
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
-    // =============================================================
-    // 2. 基础环境 (背景、返回按钮等 - 保持你原来的代码)
-    // =============================================================
+    // 2. 基础环境
 
     // 背景
-    auto bg = Sprite::create("GrassBackground.png"); // 注意：你这里用的是 GrassBackground
+    auto bg = Sprite::create("GrassBackground.png");
     if (bg)
     {
         bg->setAnchorPoint(Vec2::ZERO);
         bg->setPosition(origin);
-        // 如果需要缩放适配
         float scaleX = visibleSize.width / bg->getContentSize().width;
         float scaleY = visibleSize.height / bg->getContentSize().height;
         bg->setScale(std::max(scaleX, scaleY));
@@ -468,132 +474,142 @@ bool FightScene::initWithDifficulty(int difficulty)
     MenuItem* closeItem = MenuItemImage::create(
         "CloseNormal.png",
         "CloseSelected.png",
-        [](Ref* sender)
-        {
+        [](Ref* sender) {
             Director::getInstance()->popScene();
         });
 
     if (closeItem == nullptr || closeItem->getContentSize().width == 0)
     {
         auto lbl = Label::createWithSystemFont("Back", "Arial", 30);
-        closeItem = MenuItemLabel::create(lbl, [](Ref*)
-            {
-                Director::getInstance()->popScene();
+        closeItem = MenuItemLabel::create(lbl, [](Ref*) {
+            Director::getInstance()->popScene();
             });
     }
     closeItem->setPosition(Vec2(origin.x + visibleSize.width - 50, origin.y + 50));
     auto menu = Menu::create(closeItem, nullptr);
     menu->setPosition(Vec2::ZERO);
+
+    menu->setTag(9999);
+
     this->addChild(menu, 100);
 
-    // =============================================================
-    // 3. 【新增】资源 UI (金币/圣水) - 从 init() 搬过来的
-    // =============================================================
-
-    // --- 金币图标 ---
+    // 3. 资源 UI (金币/圣水)
     auto goldSprite = Sprite::create("GoldCoin.png");
-    if (goldSprite)
-    {
-        // 右上角位置
+    if (goldSprite) {
         goldSprite->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 50));
         this->addChild(goldSprite, 20);
     }
 
-    // --- 金币文字 ---
     int currentGold = GameScene::getGlobalGold();
     _goldLabel = Label::createWithTTF(std::to_string(currentGold), "fonts/Marker Felt.ttf", 24);
-    if (_goldLabel)
-    {
+    if (_goldLabel) {
         _goldLabel->setAnchorPoint(Vec2(0, 0.5f));
         if (goldSprite) _goldLabel->setPosition(goldSprite->getPosition() + Vec2(20, 0));
         else _goldLabel->setPosition(Vec2(visibleSize.width - 80, visibleSize.height - 50));
         this->addChild(_goldLabel, 20);
     }
 
-    // --- 圣水图标 ---
     auto waterSprite = Sprite::create("HolyWater.png");
-    if (waterSprite)
-    {
+    if (waterSprite) {
         waterSprite->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 90));
         this->addChild(waterSprite, 20);
     }
 
-    // --- 圣水文字 ---
     int currentHoly = GameScene::getGlobalHolyWater();
     _holyLabel = Label::createWithTTF(std::to_string(currentHoly), "fonts/Marker Felt.ttf", 24);
-    if (_holyLabel)
-    {
+    if (_holyLabel) {
         _holyLabel->setAnchorPoint(Vec2(0, 0.5f));
         if (waterSprite) _holyLabel->setPosition(waterSprite->getPosition() + Vec2(20, 0));
         else _holyLabel->setPosition(Vec2(visibleSize.width - 80, visibleSize.height - 90));
         this->addChild(_holyLabel, 20);
     }
-
-    // 刷新显示
     this->updateResourceUI();
 
-    // =============================================================
-    // 4. 【新增】注册掉落监听 - 从 init() 搬过来的
-    // =============================================================
+    // 4. 初始化倒计时 Label 
+    _timeLeft = 120.0f; // 2分钟
+    _isGameOver = false;
 
-    // 金币监听
-    auto goldListener = EventListenerCustom::create("LOOT_GOLD_EVENT", [this](EventCustom* event)
-        {
-            int* amount = static_cast<int*>(event->getUserData());
-            if (amount)
-            {
-                GameScene::addGlobalResources(*amount, 0);
-                this->updateResourceUI();
-            }
+    // 创建倒计时 Label
+    _timeLabel = Label::createWithSystemFont("02:00", "Arial", 40);
+    // 放在屏幕顶部正中间，稍微靠下一点，避免和难度文字重叠
+    _timeLabel->setPosition(Vec2(visibleSize.width / 2, visibleSize.height - 100));
+    _timeLabel->setColor(Color3B::WHITE);
+    _timeLabel->enableOutline(Color4B::BLACK, 2);
+    this->addChild(_timeLabel, 100); // 加到场景里，update 才能用到它
+
+    // 5. 注册监听
+    auto goldListener = EventListenerCustom::create("LOOT_GOLD_EVENT", [this](EventCustom* event) {
+        int* amount = static_cast<int*>(event->getUserData());
+        if (amount) {
+            GameScene::addGlobalResources(*amount, 0);
+            this->updateResourceUI();
+        }
         });
     _eventDispatcher->addEventListenerWithSceneGraphPriority(goldListener, this);
 
-    // 圣水监听
-    auto holyListener = EventListenerCustom::create("LOOT_HOLY_EVENT", [this](EventCustom* event)
-        {
-            int* amount = static_cast<int*>(event->getUserData());
-            if (amount)
-            {
-                GameScene::addGlobalResources(0, *amount);
-                this->updateResourceUI();
-            }
+    auto holyListener = EventListenerCustom::create("LOOT_HOLY_EVENT", [this](EventCustom* event) {
+        int* amount = static_cast<int*>(event->getUserData());
+        if (amount) {
+            GameScene::addGlobalResources(0, *amount);
+            this->updateResourceUI();
+        }
         });
     _eventDispatcher->addEventListenerWithSceneGraphPriority(holyListener, this);
 
-    // =============================================================
-    // 5. 游戏逻辑初始化 (原有代码)
-    // =============================================================
-    generateLevel();     // 生成建筑
-    initBattleUI();      // 生成出兵按钮
-    initTouchListener(); // 触摸监听
+    // 6. 游戏逻辑初始化
+    generateLevel();
+    initBattleUI();
+    initTouchListener();
 
-    // 开启 Update (让大炮能开火，且防止崩溃逻辑生效)
-    this->scheduleUpdate();
+    this->scheduleUpdate(); // 开启 Update
 
     return true;
 }
-// 【新增】每帧更新逻辑
+// 每帧更新逻辑
 void FightScene::update(float dt)
 {
-    // 1. 清理已死亡的士兵 (倒序遍历)
+    // 如果游戏结束了，就不再执行逻辑
+    if (_isGameOver) return;
+
+    // 1. 倒计时逻辑
+    _timeLeft -= dt;
+    if (_timeLeft < 0) _timeLeft = 0;
+
+    // 更新 Label 显示 (格式 MM:SS)
+    int minutes = (int)(_timeLeft / 60);
+    int seconds = (int)(_timeLeft) % 60;
+    _timeLabel->setString(cocos2d::StringUtils::format("%02d:%02d", minutes, seconds));
+
+    // 2. 清理逻辑 (士兵 + 建筑)
+
+    // A. 清理死掉的士兵
     for (int i = _mySoldiers.size() - 1; i >= 0; i--)
     {
         Soldier* s = _mySoldiers.at(i);
-        // 如果士兵已经被移出父节点 或 血量归零
         if (s->getParent() == nullptr || s->getHP() <= 0)
         {
             _mySoldiers.erase(i);
         }
     }
 
-    // 2. 遍历敌方建筑，让防御塔攻击
+    // B. 清理被摧毁的建筑
+    // 从 _enemyBuildings 列表中移除它，否则无法判断胜利。
+    for (int i = _enemyBuildings.size() - 1; i >= 0; i--)
+    {
+        Building* b = _enemyBuildings.at(i);
+        // 如果建筑已经被移出场景(被销毁)，或者血量<=0
+        if (b->getParent() == nullptr || b->getHP() <= 0)
+        {
+            _enemyBuildings.erase(i);
+        }
+    }
+
+    // 3. 游戏逻辑 (防御塔攻击)
     for (auto building : _enemyBuildings)
     {
-        // 判断是否为加农炮
         Cannon* cannon = dynamic_cast<Cannon*>(building);
         if (cannon)
         {
-            // 寻找最近的士兵
             Soldier* target = nullptr;
             float minDistance = cannon->getAttackRange();
 
@@ -606,14 +622,11 @@ void FightScene::update(float dt)
                     target = soldier;
                 }
             }
-
-            // 如果找到目标，开火 (Cannon::fireAt 内部处理冷却和动画)
-            if (target)
-            {
-                cannon->fireAt(target);
-            }
+            if (target) cannon->fireAt(target);
         }
     }
+    // 4. 检查胜负
+    checkGameStatus();
 }
 
 // 实现索敌逻辑
@@ -635,7 +648,7 @@ Building* FightScene::getPriorityTarget(Vec2 soldierPos)
         {
             priority = 3; // 最高优先级：先拆塔
         }
-        // 【新增】加农炮也是最高优先级
+        // 加农炮也是最高优先级
         else if (dynamic_cast<Cannon*>(building))
         {
             priority = 3;
@@ -681,7 +694,7 @@ void FightScene::generateLevel()
     int arrowTowerCount = 0;
     int cannonCount = 0;
     
-    // 【新增】定义要生成的资源建筑数量
+    // 定义要生成的资源建筑数量
     int goldStageCount = 0;
     int elixirTankCount = 0;
 
@@ -733,7 +746,7 @@ void FightScene::generateLevel()
         pendingBuildings.push_back(Cannon::create());
     }
 
-    // 2.3 【新增】金库和水罐 (完全使用相同的生成逻辑)
+    // 2.3 金库和水罐
     for (int i = 0; i < goldStageCount; i++) {
         auto gs = GoldStage::create();
         gs->updateVisuals(5000, 5000); // 设为满资源状态
@@ -745,7 +758,7 @@ void FightScene::generateLevel()
         pendingBuildings.push_back(et);
     }
 
-    // 第三步：生成候选坐标 (保持你的算法不动)
+    // 第三步：生成候选坐标 
     struct GridPoint {
         int x, y;
         float distanceScore;
@@ -871,4 +884,87 @@ void FightScene::setBuildingLevel(Building* building, int targetLevel)
     for (int i = 0; i < upgradesNeeded; i++) {
         building->upgrade();
     }
+}
+
+// 胜负判定
+void FightScene::checkGameStatus()
+{
+    // 1. 胜利判定：所有敌人建筑都被摧毁
+    if (_enemyBuildings.empty())
+    {
+        showGameOver(true); // Victory
+        return;
+    }
+
+    // 2. 失败判定 A：时间耗尽
+    if (_timeLeft <= 0)
+    {
+        showGameOver(false); // Defeat
+        return;
+    }
+
+    // 3. 失败判定 B：无兵可放 且 场上兵全死
+    // 检查是否有库存
+    bool hasReserves = false;
+    // 假设你有4种兵，类型ID 1~4
+    for (int i = 1; i <= 4; i++) {
+        if (GameScene::getGlobalSoldierCount(i) > 0) {
+            hasReserves = true;
+            break;
+        }
+    }
+
+    // 如果 (没库存) AND (场上没活兵) AND (还有敌人建筑) -> 输
+    if (!hasReserves && _mySoldiers.empty() && !_enemyBuildings.empty())
+    {
+        showGameOver(false); // Defeat
+        return;
+    }
+}
+
+void FightScene::showGameOver(bool isWin)
+{
+    _isGameOver = true; // 锁定状态，防止update继续跑
+
+    auto visibleSize = Director::getInstance()->getVisibleSize();
+
+    // 1. 创建结果图片
+    std::string imgName = isWin ? "Victory.png" : "Defeat.png";
+    auto resultSprite = Sprite::create(imgName);
+
+    if (resultSprite)
+    {
+        resultSprite->setPosition(visibleSize.width / 2, visibleSize.height / 2);
+        resultSprite->setScale(0.1f); // 初始很小，做弹窗动画
+        this->addChild(resultSprite, 200); // 放在最上层
+
+        // 动画：弹出来
+        auto scaleTo = ScaleTo::create(0.5f, 1.0f);
+        auto ease = EaseBackOut::create(scaleTo);
+        resultSprite->runAction(ease);
+    }
+    else
+    {
+        // 如果没图，用文字代替
+        auto label = Label::createWithSystemFont(isWin ? "VICTORY!" : "DEFEAT...", "Arial", 80);
+        label->setPosition(visibleSize.width / 2, visibleSize.height / 2);
+        label->setColor(isWin ? Color3B::YELLOW : Color3B::RED);
+        label->enableOutline(Color4B::BLACK, 4);
+        this->addChild(label, 200);
+    }
+
+    // 2. 停止所有战斗逻辑
+    this->unscheduleUpdate();
+
+    // 3. 停止所有正在进行的动作 (让士兵和塔停下来)
+    // 遍历所有子节点暂停动作
+    for (auto child : this->getChildren()) {
+
+        // 如果这个节点是我们标记的“退出菜单”，就跳过，不暂停
+        if (child->getTag() == 9999) continue;
+
+        child->pause();
+    }
+
+    CCLOG("Game Over: %s", isWin ? "Win" : "Lose");
 }

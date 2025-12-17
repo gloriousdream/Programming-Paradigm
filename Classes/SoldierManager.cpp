@@ -77,3 +77,14 @@ void SoldierManager::cleanDeadSoldiers()
         }
     }
 }
+
+void SoldierManager::reset()
+{
+    // 1. 清理士兵列表
+    _soldiers.clear();
+
+    // 2. 清理占用网格
+    memset(grid, 0, sizeof(grid));
+
+    CCLOG("SoldierManager 数据已清空");
+}

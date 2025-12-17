@@ -13,6 +13,7 @@ int GameScene::holyWater = 500;   // 初始圣水
 
 // 初始化
 std::map<int, int> GameScene::_globalSoldiers;
+std::map<int, int> GameScene::_homeSoldiers;
 
 int GameScene::getGlobalSoldierCount(int type)
 {
@@ -23,9 +24,19 @@ int GameScene::getGlobalSoldierCount(int type)
 
 void GameScene::addGlobalSoldierCount(int type, int amount)
 {
-    _globalSoldiers[type] += amount;
-    // 防止减成负数
-    if (_globalSoldiers[type] < 0) _globalSoldiers[type] = 0;
+    if (amount > 0)
+    {
+        _homeSoldiers[type] += amount;
+        // 同时同步给显示用的库存
+        _globalSoldiers[type] = _homeSoldiers[type];
+    }
+    else
+    {
+        // 只扣除当前战斗用的临时库存
+        _globalSoldiers[type] += amount;
+        // 防止减成负数
+        if (_globalSoldiers[type] < 0) _globalSoldiers[type] = 0;
+    }
 }
 
 struct SoldierConfig
@@ -638,6 +649,8 @@ void GameScene::onFightpushed()
     auto btnEasy = MenuItemImage::create("Easy.png", "Easy.png", [=](Ref* sender) {
         CCLOG("Go to Easy Mode");
 
+        GameScene::_globalSoldiers = GameScene::_homeSoldiers;
+
         // 先移除菜单
         this->removeChildByTag(TAG_DIFFICULTY_MENU);
 
@@ -649,6 +662,8 @@ void GameScene::onFightpushed()
     auto btnMiddle = MenuItemImage::create("Middle.png", "Middle.png", [=](Ref* sender) {
         CCLOG("Go to Middle Mode");
 
+        GameScene::_globalSoldiers = GameScene::_homeSoldiers;
+
         // 先移除菜单
         this->removeChildByTag(TAG_DIFFICULTY_MENU);
 
@@ -658,6 +673,8 @@ void GameScene::onFightpushed()
     // HARD 
     auto btnHard = MenuItemImage::create("Hard.png", "Hard.png", [=](Ref* sender) {
         CCLOG("Go to Hard Mode");
+
+        GameScene::_globalSoldiers = GameScene::_homeSoldiers;
 
         // 先移除菜单
         this->removeChildByTag(TAG_DIFFICULTY_MENU);

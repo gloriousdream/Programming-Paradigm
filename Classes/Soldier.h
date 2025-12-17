@@ -29,7 +29,7 @@ public:
     // 获取当前瞬间的移动方向
     cocos2d::Vec2 getCurrentDirection() const { return _curMoveDir; }
 
-    // 【修改】参照 Building 的命名风格
+    // 参照 Building 的命名风格
     void setHP(int hp) {
         maxHP = hp;
         currentHP = hp;
@@ -38,7 +38,7 @@ public:
     int getHP() const { return currentHP; }
 
     void takeDamage(int dmg); // 受伤函数
-    void updateHPBar();       // 【新增】更新血条显示
+    void updateHPBar();       // 更新血条显示
 
 protected:
     cocos2d::Vec2 homePosition;
@@ -62,11 +62,11 @@ protected:
     void updateSoldierLogic(float dt);
     void updatePatrolLogic(float dt);
 
-    // 【修改】变量名改为与 Building 一致
+    // 变量名改为与 Building 一致
     int maxHP = 100;
     int currentHP = 100;
 
-    // 【新增】血条节点
+    // 血条节点
     cocos2d::DrawNode* hpBar = nullptr;
 };
 

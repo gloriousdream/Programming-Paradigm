@@ -11,8 +11,11 @@ public:
     Soldier* createSoldier(int type, cocos2d::Vec2 pos);
 
     cocos2d::Vector<Soldier*>& getSoldiers() { return _soldiers; }
-    // 清理已经死亡或被移除的士兵（防止加农炮打空气）
+    // 清理已经死亡或被移除的士兵
     void cleanDeadSoldiers();
+
+    // 重置
+    void reset();
 private:
     SoldierManager();
 

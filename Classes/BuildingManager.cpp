@@ -149,3 +149,14 @@ Building* BuildingManager::createBuilding(int type, Vec2 pos)
 
     return building;
 }
+
+void BuildingManager::reset()
+{
+    // 1. 清空建筑占用网格
+    memset(grid, 0, sizeof(grid));
+
+    // 2. 重新初始化保留区
+    initReservedArea();
+
+    CCLOG("BuildingManager 数据已清空");
+}

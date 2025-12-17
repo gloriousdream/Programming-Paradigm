@@ -65,7 +65,7 @@ private:
 
     // 存储士兵库存 <兵种类型, 数量>
     static std::map<int, int> _globalSoldiers;
-
+    
+    // 大本营库存
+    static std::map<int, int> _homeSoldiers;
 };
-
-
