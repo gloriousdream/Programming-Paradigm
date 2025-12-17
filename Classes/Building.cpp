@@ -37,13 +37,24 @@ void Building::addTouchListener()
 
 void Building::takeDamage(int dmg)
 {
+    // 如果已经死了，就不要再鞭尸了，直接返回
+    if (_isDead) return;
+
     currentHP -= dmg;
     if (currentHP < 0) currentHP = 0;
+
     updateHPBar();
 
     if (currentHP <= 0)
     {
-        this->removeFromParentAndCleanup(true);
+        _isDead = true; // 标记死亡
+
+        this->setVisible(false);
+
+        this->runAction(RemoveSelf::create());
+
+        // 如果有血条，也隐藏掉
+        if (hpBar) hpBar->setVisible(false);
     }
 }
 

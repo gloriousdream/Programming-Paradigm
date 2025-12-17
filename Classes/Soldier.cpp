@@ -90,11 +90,15 @@ void Soldier::setPath(const std::vector<Vec2>& pathPoints)
 void Soldier::updateSoldierLogic(float dt)
 {
     // 1. 目标状态校验
-    if (_targetBuilding && (_targetBuilding->getParent() == nullptr))
+    if (_targetBuilding)
     {
-        _targetBuilding = nullptr;
-        stopAllActions();
-        _state = SoldierState::IDLE;
+        // 如果目标被标记为死亡或者真的不在场景里了
+        if (_targetBuilding->isDead())
+        {
+            _targetBuilding = nullptr; // 丢弃无效指针
+            stopAllActions();
+            _state = SoldierState::IDLE;
+        }
     }
 
     // 2. 如果没有目标，尝试寻找目标

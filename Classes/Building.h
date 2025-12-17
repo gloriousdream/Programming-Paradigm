@@ -12,6 +12,7 @@ public:
     int getHP() const { return currentHP; }
     int getMaxHP() const { return maxHP; }
     int getLevel() const { return level; }
+    bool isDead() const { return _isDead; } // 获取死亡状态
     virtual void takeDamage(int dmg);   // 受伤
     void updateHPBar();         // 更新血条显示
 
@@ -25,6 +26,8 @@ protected:
     int level = 1;
     int maxHP = 100;
     int currentHP = 100;
+
+    bool _isDead = false; // 死亡标记
 
     cocos2d::DrawNode* hpBar = nullptr;
 
