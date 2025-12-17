@@ -15,7 +15,7 @@ bool ArrowTower::init()
     // 建造和升级消耗（你同意的数值）
     buildCostGold = 120;
     buildCostHoly = 60;
-    // 升级消耗：到2级 / 到3级（GameScene 会读取这些值）
+    // 升级消耗：到2级 / 到3级
     upgradeCostGold = 60;  // 这里表示下一次升级的当前数值
     upgradeCostHoly = 30;
 

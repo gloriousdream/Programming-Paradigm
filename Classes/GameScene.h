@@ -2,6 +2,7 @@
 #define __GAME_SCENE_H__
 
 #include "cocos2d.h"
+#include <map>
 
 class GameScene : public cocos2d::Scene
 {
@@ -21,6 +22,11 @@ public:
     void showTrainMenu(cocos2d::Sprite* building);
     void showTrainAmountMenu(int soldierType);
 
+    // 获取全局士兵数量
+    static int getGlobalSoldierCount(int type);
+
+    // 修改全局士兵数量
+    static void addGlobalSoldierCount(int type, int amount);
 
 private:
     bool placeModebuild = false;
@@ -56,6 +62,9 @@ private:
 
     // 记录当前难度
     const int TAG_DIFFICULTY_MENU = 8888;
+
+    // 存储士兵库存 <兵种类型, 数量>
+    static std::map<int, int> _globalSoldiers;
 
 };
 

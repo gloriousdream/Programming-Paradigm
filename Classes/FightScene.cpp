@@ -249,11 +249,23 @@ void FightScene::showDeployMenu()
 
         item->setScale(1.2f);
 
-        // 在图标下方加个名字
-        auto nameLabel = Label::createWithSystemFont(opt.name, "Arial", 20);
-        nameLabel->setPosition(Vec2(item->getContentSize().width / 2, -20));
-        item->addChild(nameLabel);
+        // 在图标下方加名字
+        int count = GameScene::getGlobalSoldierCount(opt.type);
+        std::string nameStr = opt.name + " x" + std::to_string(count);
 
+        // 颜色提示：如果没有兵了，名字显示灰色，否则白色
+        auto nameLabel = Label::createWithSystemFont(nameStr, "Arial", 20);
+        nameLabel->setPosition(Vec2(item->getContentSize().width / 2, -20));
+
+        if (count <= 0) {
+            nameLabel->setColor(Color3B::GRAY);
+            item->setOpacity(100); // 图标变暗
+        }
+        else {
+            nameLabel->setColor(Color3B::WHITE);
+        }
+
+        item->addChild(nameLabel);
         items.pushBack(item);
     }
 
@@ -327,12 +339,23 @@ void FightScene::onMapClick(Vec2 pos)
 {
     if (_selectedSoldierType == 0) return;
 
+    // 检查库存是否充足
+    int currentStock = GameScene::getGlobalSoldierCount(_selectedSoldierType);
+    if (currentStock <= 0)
+    {
+        CCLOG("兵力不足！无法放置兵种 %d", _selectedSoldierType);
+        return; // 库存不足，直接返回，不执行下面的放兵逻辑
+    }
+
     auto soldier = SoldierManager::getInstance()->createSoldier(_selectedSoldierType, pos);
     if (soldier)
     {
-        // 【关键修改】使用 addSoldier 替代原来的 addChild
-        // 这样加农炮才能识别到这个士兵
+        // 加农炮识别到这个士兵
         this->addSoldier(soldier);
+
+        // 扣除库存
+        GameScene::addGlobalSoldierCount(_selectedSoldierType, -1);
+        CCLOG("放置成功！剩余库存: %d", currentStock - 1);
 
         // 1. 找攻击目标
         Building* target = getPriorityTarget(pos);

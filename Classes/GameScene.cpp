@@ -10,6 +10,24 @@
 USING_NS_CC;
 int GameScene::gold = 1000;       // 初始金币
 int GameScene::holyWater = 500;   // 初始圣水
+
+// 初始化
+std::map<int, int> GameScene::_globalSoldiers;
+
+int GameScene::getGlobalSoldierCount(int type)
+{
+    // 如果没有这个key，自动返回0
+    if (_globalSoldiers.find(type) == _globalSoldiers.end()) return 0;
+    return _globalSoldiers[type];
+}
+
+void GameScene::addGlobalSoldierCount(int type, int amount)
+{
+    _globalSoldiers[type] += amount;
+    // 防止减成负数
+    if (_globalSoldiers[type] < 0) _globalSoldiers[type] = 0;
+}
+
 struct SoldierConfig
 {
     std::string name;
@@ -66,10 +84,10 @@ static std::string getBuildingTexturePath(int type)
 }
 void GameScene::onEnter()
 {
-    // 1. 必须先调用父类的 onEnter 
+    // 先调用父类的 onEnter 
     Scene::onEnter();
 
-    // 2. 每次回到这个场景，都强制刷新一次 UI
+    // 每次回到这个场景，都强制刷新一次 UI
     this->updateResourceDisplay();
 }
 Scene* GameScene::createScene()
@@ -84,7 +102,7 @@ bool GameScene::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
-    // 1. 背景
+    // 背景
     auto bg = Sprite::create("GrassBackground.png");
     if (bg) {
         bg->setAnchorPoint(Vec2::ZERO);
@@ -92,7 +110,7 @@ bool GameScene::init()
         this->addChild(bg, 0);
     }
 
-    // 2. 建造、战斗按钮
+    // 建造、战斗按钮
     auto buildBtn = MenuItemImage::create("Building.png", "Building.png", CC_CALLBACK_0(GameScene::onBuildButtonPressed, this));
     auto FightBtn = MenuItemImage::create("Fight.png", "Fight.png", CC_CALLBACK_0(GameScene::onFightpushed, this));
     auto menu = Menu::create(buildBtn, FightBtn, nullptr);
@@ -100,7 +118,7 @@ bool GameScene::init()
     menu->alignItemsVerticallyWithPadding(50);
     this->addChild(menu, 10);
 
-    // 3. 资源显示
+    // 资源显示
     auto goldSprite = Sprite::create("GoldCoin.png");
     goldSprite->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 50));
     this->addChild(goldSprite, 10);
@@ -129,7 +147,7 @@ bool GameScene::init()
     populationLabel->setPosition(popSprite->getPosition() + Vec2(20, 0));
     this->addChild(populationLabel, 10);
 
-    // 4. 地图点击事件 (用于确认放置)
+    // 地图点击事件 
     auto touchListener = EventListenerTouchOneByOne::create();
     touchListener->onTouchBegan = [=](Touch* t, Event* e) {
         if (placeModebuild || placeModesoldier)
@@ -138,20 +156,18 @@ bool GameScene::init()
             return true;
         }
         if (currentPopup) {
-            // 可选：点击空地关闭菜单
             // closeCurrentPopup();
         }
         return false;
         };
     _eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, this);
 
-    // 5. 鼠标移动监听
+    // 鼠标移动监听
     auto mouseListener = EventListenerMouse::create();
     mouseListener->onMouseMove = [=](Event* event) {
         if (placeModebuild && ghostSprite)
         {
             EventMouse* e = (EventMouse*)event;
-            // 直接使用 getLocationInView 即可
             Vec2 temp = e->getLocationInView();
             Vec2 mousePos = Vec2(temp.x, temp.y);
 
@@ -165,7 +181,7 @@ bool GameScene::init()
         };
     _eventDispatcher->addEventListenerWithSceneGraphPriority(mouseListener, this);
 
-    // 6. 建筑点击事件
+    // 建筑点击事件
     auto buildingListener = EventListenerCustom::create("BUILDING_CLICKED", [=](EventCustom* event) {
         if (placeModebuild) return; // 建造模式下不响应
 
@@ -174,7 +190,7 @@ bool GameScene::init()
         });
     _eventDispatcher->addEventListenerWithSceneGraphPriority(buildingListener, this);
 
-    // 7. 监听收集圣水事件
+    // 监听收集圣水事件
     auto collectListener = EventListenerCustom::create("COLLECT_WATER_EVENT", [=](EventCustom* event) {
         int* amountPtr = static_cast<int*>(event->getUserData());
         int amount = *amountPtr;
@@ -184,7 +200,7 @@ bool GameScene::init()
         });
     _eventDispatcher->addEventListenerWithSceneGraphPriority(collectListener, this);
 
-    // 8. 监听收集金币事件
+    // 监听收集金币事件
     auto collectCoinListener = EventListenerCustom::create("COLLECT_COIN_EVENT", [=](EventCustom* event) {
         int* amountPtr = static_cast<int*>(event->getUserData());
         int amount = *amountPtr;
@@ -248,7 +264,7 @@ void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
     // 是否满级
     bool isMaxLv = (targetBuilding->getLevel() >= 3);
 
-    // 升级按钮（仅未满级）
+    // 升级按钮
     MenuItemImage* upgradeBtn = nullptr;
     if (!isMaxLv)
     {
@@ -291,8 +307,8 @@ void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
         }
     );
 
-    // 满级 → 自动居中
-    // 未满级 → 在右侧显示
+    // 满级自动居中
+    // 未满级在右侧显示
     Vec2 trainPos = isMaxLv ?
         Vec2(0, buildingSize.height / 2 + 50) :
         Vec2(50, buildingSize.height / 2 + 50);
@@ -303,12 +319,12 @@ void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
     Menu* menu = nullptr;
     if (isMaxLv)
     {
-        // 满级 → 只显示造兵按钮
+        // 满级只显示造兵按钮
         menu = Menu::create(trainBtn, nullptr);
     }
     else
     {
-        // 未满级 → 升级 + 造兵
+        // 未满级显示升级 + 造兵
         menu = Menu::create(upgradeBtn, trainBtn, nullptr);
     }
 
@@ -321,27 +337,27 @@ void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
 // 统一处理建筑点击事件
 void GameScene::onBuildingClicked(cocos2d::Sprite* building)
 {
-    // 1. 判断逻辑：点击的是否是当前已经打开菜单的那个建筑？
+    // 判断逻辑：点击的是否是当前已经打开菜单的那个建筑？
     bool isSameBuilding = (currentBuildingMenu == building);
 
-    // 2. 无论点击的是谁，先清理掉屏幕上现有的菜单
+    // 无论点击的是谁，先清理掉屏幕上现有的菜单
     this->removeChildByTag(999);
 
-    // 双重保险：如果有遗留的 Name 节点也移除
+    // 如果有遗留的 Name 节点也移除
     if (auto node = this->getChildByName("UPGRADE_MENU")) {
         node->removeFromParent();
     }
 
-    // 3. 重置当前选中状态
+    // 重置当前选中状态
     currentBuildingMenu = nullptr;
 
-    // 4. 如果是第二次点击同一个建筑，因为上面已经移除了菜单，
-    //    这里直接返回，不再执行下面的“显示菜单”逻辑，从而达到“隐藏”的效果。
+    // 如果是第二次点击同一个建筑，因为上面已经移除了菜单，
+    // 直接返回，不再执行下面的“显示菜单”逻辑，从而达到“隐藏”的效果。
     if (isSameBuilding) {
         return;
     }
 
-    // 5. 如果是新建筑，则显示对应的菜单
+    // 如果是新建筑，则显示对应的菜单
     MilitaryCamp* camp = dynamic_cast<MilitaryCamp*>(building);
     if (camp) {
         showMilitaryOptions(building);
@@ -353,7 +369,7 @@ void GameScene::onBuildingClicked(cocos2d::Sprite* building)
 
 void GameScene::showTrainMenu(cocos2d::Sprite* building)
 {
-    // 1. 清理互斥界面
+    // 清理互斥界面
     this->removeChildByTag(999);
     this->removeChildByTag(998);
     currentBuildingMenu = nullptr;
@@ -366,7 +382,7 @@ void GameScene::showTrainMenu(cocos2d::Sprite* building)
     menu->onTrainSoldier = [=](int soldierType, int amount)
         {
 
-            // --- 资源检查与扣除逻辑 (保持不变) ---
+            // 资源检查与扣除逻辑 
             SoldierConfig config = getSoldierConfig(soldierType);
             int totalGoldCost = config.costGold * amount;
             int totalWaterCost = config.costHolyWater * amount;
@@ -388,22 +404,28 @@ void GameScene::showTrainMenu(cocos2d::Sprite* building)
             this->population += totalPop;
             this->updateResourceDisplay();
 
+            // 更新全局兵力库存
+            addGlobalSoldierCount(soldierType, amount);
+
+            CCLOG("已存入兵库: 类型%d, 数量%d, 当前库存%d",
+                soldierType, amount, getGlobalSoldierCount(soldierType));
+
             auto visibleSize = Director::getInstance()->getVisibleSize();
 
-            // 1. 计算区域中心点
+            // 计算区域中心点
             // X: 屏幕宽度的 20% 处 (左侧)
             // Y: 屏幕高度的 50% 处 (中间)
             float centerX = visibleSize.width * 0.2f;
             float centerY = visibleSize.height * 0.5f;
 
-            // 2. 定义区域大小 (假设格子是64，2x2就是128)
+            // 定义区域大小
             float areaW = 128.0f;
             float areaH = 128.0f;
 
-            // 3. 构建矩形 (原点在左下角，所以减去宽高的一半)
+            // 构建矩形 (原点在左下角，所以减去宽高的一半)
             Rect patrolArea(centerX - areaW / 2, centerY - areaH / 2, areaW, areaH);
 
-            // [生成士兵]
+            // 生成士兵
             for (int i = 0; i < amount; i++)
             {
                 // 在 patrolArea 这个小方块内随机取一个点作为出生点
@@ -414,13 +436,13 @@ void GameScene::showTrainMenu(cocos2d::Sprite* building)
 
                 if (soldier)
                 {
-                    // 1. 告诉士兵只能在这个方块里跑
+                    // 告诉士兵只能在这个方块里跑
                     soldier->setMoveArea(patrolArea);
 
-                    // 2. 手动启动巡逻
+                    // 手动启动巡逻
                     soldier->actionWalk();
 
-                    // 3. 添加到场景 (Z轴15)
+                    // 添加到场景 
                     this->addChild(soldier, 15);
                 }
             }
@@ -514,19 +536,19 @@ void GameScene::showUpgradeButton(Sprite* building)
 // 点击建筑建造按钮
 void GameScene::onBuildButtonPressed()
 {
-    // 1. 防止重复打开菜单
+    // 防止重复打开菜单
     auto existingMenu = this->getChildByName("BUILD_MENU_NODE");
     if (existingMenu) {
         existingMenu->removeFromParent();
         return;
     }
 
-    // 2. 创建建造菜单
+    // 创建建造菜单
     auto menu = BuildMenu::createMenu();
     menu->setName("BUILD_MENU_NODE");
     this->addChild(menu, 100);
 
-    // 3. 定义菜单点击回调
+    // 定义菜单点击回调
     menu->onSelectBuilding = [menu, this](int type) {
         this->selectedType = type;
 
@@ -543,22 +565,19 @@ void GameScene::onBuildButtonPressed()
         if (type == 6) {
             CCLOG("GameScene: 正在创建加农炮虚影...");
 
-            // A. 必须先加载 plist
-            // 确保 atlas.plist 和 atlas.png 都在 build/bin/Debug/Resources 里
+            // 必须先加载 plist
             SpriteFrameCache::getInstance()->addSpriteFramesWithFile("atlas.plist");
 
-            // B. 优先使用底座 (cannon_stand.png)
-            // 炮管(cannon01.png)太细了可能看不清，底座大，更容易看到
+            // 优先使用底座 
             this->ghostSprite = Sprite::createWithSpriteFrameName("cannon_stand.png");
 
-            // C. 如果找不到底座，尝试找炮管
+            // 如果找不到底座，尝试找炮管
             if (!this->ghostSprite) {
                 CCLOG("GameScene: 没找到底座，尝试使用炮管...");
                 this->ghostSprite = Sprite::createWithSpriteFrameName("cannon01.png");
             }
 
-            // D. 如果还是找不到，创建一个显眼的红色方块！
-            // 如果你看到红色方块，说明代码没问题，是 atlas.plist 文件没放对位置
+            // 如果找不到，创建一个显眼的红色方块
             if (!this->ghostSprite) {
                 CCLOG("GameScene: 【严重错误】无法创建虚影！显示红色方块警告。");
                 this->ghostSprite = Sprite::create();
@@ -567,7 +586,7 @@ void GameScene::onBuildButtonPressed()
             }
         }
         else {
-            // --- 其他普通建筑 ---
+            // 其他普通建筑 
             std::string imgPath = getBuildingTexturePath(type);
             this->ghostSprite = Sprite::create(imgPath);
 
@@ -579,12 +598,11 @@ void GameScene::onBuildButtonPressed()
             }
         }
 
-        // 4. 设置虚影位置
+        // 设置虚影位置
         if (this->ghostSprite) {
             this->ghostSprite->setOpacity(128); // 半透明
 
-            // 【关键修改】使用 getVisibleSize 确保一定在屏幕视野正中间
-            // 之前用 WinSize 可能会导致图片偏离屏幕
+            // 使用 getVisibleSize 确保一定在屏幕视野正中间
             auto visibleSize = Director::getInstance()->getVisibleSize();
             Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
@@ -616,7 +634,7 @@ void GameScene::onFightpushed()
     float menuX = origin.x + visibleSize.width - 130;
     float menuY = origin.y + visibleSize.height / 2 - 200;
 
-    // --- EASY ---
+    // EASY 
     auto btnEasy = MenuItemImage::create("Easy.png", "Easy.png", [=](Ref* sender) {
         CCLOG("Go to Easy Mode");
 
@@ -627,7 +645,7 @@ void GameScene::onFightpushed()
         Director::getInstance()->pushScene(TransitionFade::create(0.5f, FightScene::createScene(1)));
         });
 
-    // --- MIDDLE ---
+    // MIDDLE
     auto btnMiddle = MenuItemImage::create("Middle.png", "Middle.png", [=](Ref* sender) {
         CCLOG("Go to Middle Mode");
 
@@ -637,7 +655,7 @@ void GameScene::onFightpushed()
         Director::getInstance()->pushScene(TransitionFade::create(0.5f, FightScene::createScene(2)));
         });
 
-    // --- HARD ---
+    // HARD 
     auto btnHard = MenuItemImage::create("Hard.png", "Hard.png", [=](Ref* sender) {
         CCLOG("Go to Hard Mode");
 
@@ -653,7 +671,7 @@ void GameScene::onFightpushed()
     // 设置菜单整体位置
     diffMenu->setPosition(menuX, menuY);
 
-    // 让按钮垂直对齐，间隔 10 像素 (紧凑一点，看起来像一个下拉列表)
+    // 让按钮垂直对齐，间隔 10 像素
     diffMenu->alignItemsVerticallyWithPadding(10);
 
     // 设置 Tag，方便后面查找删除
@@ -691,7 +709,7 @@ void GameScene::onMapClicked(Vec2 pos)
     int gy = pos.y / 64;
     Vec2 snapPos(gx * 64 + 32, gy * 64 + 32);
 
-    // --- 1. 建造模式逻辑 ---
+    // 建造模式
     if (placeModebuild)
     {
         // 这里需要硬编码一下每种建筑的临时消耗，或者从 Config 获取
@@ -717,7 +735,6 @@ void GameScene::onMapClicked(Vec2 pos)
 
             if (building)
             {
-                // [成功]
                 this->addChild(building, 5);
                 gold -= costGold;
                 holyWater -= costHoly;
@@ -746,7 +763,7 @@ void GameScene::onMapClicked(Vec2 pos)
         }
         else
         {
-            // [失败]：资源不足
+            // 资源不足
             CCLOG("资源不足");
             if (ghostSprite)
             {
@@ -757,7 +774,7 @@ void GameScene::onMapClicked(Vec2 pos)
         }
     }
 
-    // --- 2. 士兵放置逻辑 (进攻模式) ---
+    // 士兵放置
     else if (placeModesoldier)
     {
         // 进攻用的兵，不需要限制区域，直接生成并启动
