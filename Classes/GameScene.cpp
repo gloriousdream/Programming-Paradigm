@@ -6,11 +6,225 @@
 #include "Building.h"
 #include "MilitaryCamp.h"
 #include "FightScene.h"
-
+#include "TownHall.h"
+#include "GoldStage.h"    // 金库
+#include "ElixirTank.h"   // 圣水罐
+#include "Cannon.h"       // 加农炮 
+#include "ArrowTower.h"   // 箭塔 
 USING_NS_CC;
 int GameScene::gold = 1000;       // 初始金币
 int GameScene::holyWater = 500;   // 初始圣水
+// 辅助函数：在左侧区域随机位置生成一个闲置士兵
+// 辅助函数：在保留区域（左侧）随机位置生成一个闲置士兵
+void GameScene::spawnHomeSoldier(int type)
+{
+    // 1. 获取原始区域
+    Rect area = BuildingManager::getInstance()->getSoldierSpawnArea();
 
+    // =========================================================
+    // 【新增修改】整体向左下角移动一个单位
+    // 假设你的格子大小是 64 (根据之前的代码 TILE=64)
+    // =========================================================
+    float tileSize = 64.0f;
+    area.origin.x -= tileSize; // X 减小 (向左)
+    area.origin.y -= tileSize; // Y 减小 (向下)
+
+    // 2. 在这个区域内随机生成一个坐标
+    // 稍微向内收缩一点(padding)，防止贴在边缘
+    float padding = 10.0f;
+    float minX = area.origin.x + padding;
+    float maxX = area.origin.x + area.size.width - padding;
+    float minY = area.origin.y + padding;
+    float maxY = area.origin.y + area.size.height - padding;
+
+    // 防止区域太小导致崩溃 (安全检查)
+    if (maxX <= minX) maxX = minX + 1;
+    if (maxY <= minY) maxY = minY + 1;
+
+    // 随机计算 X 和 Y
+    float randX = minX + (rand() % (int)(maxX - minX));
+    float randY = minY + (rand() % (int)(maxY - minY));
+    Vec2 spawnPos(randX, randY);
+
+    // 3. 创建士兵
+    auto soldier = SoldierManager::getInstance()->createSoldier(type, spawnPos);
+
+    if (soldier)
+    {
+        // 【关键】因为上面修改了 area，所以这里 setMoveArea 传入的
+        // 也是移动后的新区域，士兵只会在新区域里跑，不会跑回去了
+        soldier->setMoveArea(area);
+
+        // 设置为“家里的兵”，让它开始闲逛
+        soldier->actionWalk();
+
+        // 4. 添加到场景
+        this->addChild(soldier, 15);
+    }
+}void GameScene::onExit()
+{
+    // 退出场景前，自动保存
+    this->saveData();
+    Scene::onExit();
+}
+void GameScene::saveData()
+{
+    auto userDefault = UserDefault::getInstance();
+
+    // 1. 保存资源
+    userDefault->setIntegerForKey("PlayerGold", gold);
+    userDefault->setIntegerForKey("PlayerHolyWater", holyWater);
+
+    // 2. 保存士兵数量
+    // 假设你有 1, 2, 3 种类型的士兵
+    for (int i = 1; i <= 3; i++)
+    {
+        std::string key = "Soldier_" + std::to_string(i);
+        userDefault->setIntegerForKey(key.c_str(), _homeSoldiers[i]);
+    }
+
+    // 3. 保存建筑
+    std::string buildData = "";
+
+    // 遍历场景的所有子节点
+    for (auto node : this->getChildren())
+    {
+        // 判断这个节点是不是 Building 类
+        Building* build = dynamic_cast<Building*>(node);
+        if (build)
+        {
+            std::string type = "";
+
+            //即使使用了多态，为了保存名字，我们需要手动判断类型
+            if (dynamic_cast<TownHall*>(build)) type = "TownHall";
+            else if (dynamic_cast<GoldStage*>(build)) type = "GoldStage";
+            else if (dynamic_cast<ElixirTank*>(build)) type = "ElixirTank";
+            else if (dynamic_cast<Cannon*>(build)) type = "Cannon";
+            else if (dynamic_cast<MilitaryCamp*>(build)) type = "MilitaryCamp";
+            else if (dynamic_cast<ArrowTower*>(build)) type = "ArrowTower";
+
+            if (type != "")
+            {
+                // 拼接字符串: Type,Level,X,Y;
+                buildData += type + "," +
+                    std::to_string(build->getLevel()) + "," +
+                    std::to_string((int)build->getPositionX()) + "," +
+                    std::to_string((int)build->getPositionY()) + ";";
+            }
+        }
+    }
+
+    userDefault->setStringForKey("BuildingData", buildData);
+
+    // 标记存档已存在
+    userDefault->setBoolForKey("HasSaveData", true);
+
+    // 强制写入磁盘
+    userDefault->flush();
+    CCLOG("Game Saved!");
+}
+Sprite* GameScene::createBuildingByName(std::string name, int level)
+{
+    Building* building = nullptr;
+
+    // 根据名字判断类型
+    if (name == "TownHall") building = TownHall::create();
+    else if (name == "GoldStage") building = GoldStage::create();
+    else if (name == "ElixirTank") building = ElixirTank::create();
+    else if (name == "Cannon") building = Cannon::create();
+    else if (name == "MilitaryCamp") building = MilitaryCamp::create();
+    else if (name == "ArrowTower") building = ArrowTower::create();
+    else if (name == "CoinCollection") building = CoinCollection::create();
+    else if (name == "WaterCollection") building = WaterCollection::create();
+
+    if (building)
+    {
+        // 简单循环升级
+        for (int i = 1; i < level; i++)
+        {
+            building->upgrade();
+        }
+    }
+    return building;
+}
+void GameScene::loadData()
+{
+    auto userDefault = UserDefault::getInstance();
+
+    // 1. 检查存档
+    bool hasSave = userDefault->getBoolForKey("HasSaveData", false);
+    if (!hasSave)
+    {
+        CCLOG("No save data found.");
+        return;
+    }
+
+    // 2. 恢复金币和圣水
+    gold = userDefault->getIntegerForKey("PlayerGold", 1000);
+    holyWater = userDefault->getIntegerForKey("PlayerHolyWater", 500);
+
+    // 3. 恢复士兵并计算人口
+    int totalPopulation = 0; // 【新增】用于统计总人口
+
+    for (int i = 1; i <= 3; i++)
+    {
+        std::string key = "Soldier_" + std::to_string(i);
+        int count = userDefault->getIntegerForKey(key.c_str(), 0);
+
+        // 恢复后台数据
+        addGlobalSoldierCount(i, count);
+
+        // 【新增】累加人口
+        totalPopulation += count;
+
+        // 恢复画面：生成士兵
+        for (int k = 0; k < count; k++)
+        {
+            this->spawnHomeSoldier(i);
+        }
+    }
+
+    // =========================================================
+    // 【关键修复】手动更新场景的人口变量，并刷新 UI
+    // =========================================================
+    this->population = totalPopulation;
+
+    // 强制刷新一次界面（确保 updateResourceDisplay 里有更新 populationLabel 的代码）
+    this->updateResourceDisplay();
+
+    // 4. 恢复建筑
+    std::string buildData = userDefault->getStringForKey("BuildingData", "");
+    if (!buildData.empty())
+    {
+        std::stringstream ss(buildData);
+        std::string segment;
+        while (std::getline(ss, segment, ';'))
+        {
+            if (segment.empty()) continue;
+            std::stringstream ss2(segment);
+            std::string typeStr, levelStr, xStr, yStr;
+            if (!std::getline(ss2, typeStr, ',')) continue;
+            if (!std::getline(ss2, levelStr, ',')) continue;
+            if (!std::getline(ss2, xStr, ',')) continue;
+            if (!std::getline(ss2, yStr, ',')) continue;
+
+            int level = std::atoi(levelStr.c_str());
+            int x = std::atoi(xStr.c_str());
+            int y = std::atoi(yStr.c_str());
+            if (level < 1) level = 1;
+
+            Sprite* b = createBuildingByName(typeStr, level);
+            if (b)
+            {
+                b->setPosition(Vec2(x, y));
+                this->addChild(b, 5);
+               
+            }
+        }
+    }
+
+    CCLOG("Game Loaded with Population: %d", this->population);
+}
 // 初始化
 std::map<int, int> GameScene::_globalSoldiers;
 std::map<int, int> GameScene::_homeSoldiers;
@@ -222,7 +436,7 @@ bool GameScene::init()
     _eventDispatcher->addEventListenerWithSceneGraphPriority(collectCoinListener, this);
 
     updateResourceDisplay();
-
+    this->loadData();
     return true;
 }
 

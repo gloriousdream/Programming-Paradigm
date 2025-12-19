@@ -27,6 +27,14 @@ public:
 
     // 修改全局士兵数量
     static void addGlobalSoldierCount(int type, int amount);
+    void saveData(); // 保存游戏数据
+    void loadData(); // 读取游戏数据
+
+    // 在 onExit 中自动保存
+    virtual void onExit() override;
+    void spawnHomeSoldier(int type);
+    // 辅助：根据名字创建建筑
+    cocos2d::Sprite* createBuildingByName(std::string name, int level);
 
 private:
     bool placeModebuild = false;

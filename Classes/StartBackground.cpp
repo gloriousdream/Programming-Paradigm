@@ -53,8 +53,13 @@ bool StartBackground::init()
 }
 
 
+// StartBackground.cpp
+
 void StartBackground::menuStartGameCallback(Ref* pSender)
 {
-    auto nextScene = GameScene::createScene();
-    Director::getInstance()->replaceScene(TransitionFade::create(1.0f, nextScene));
+    
+
+    // ÇÐ»»³¡¾°
+    auto scene = GameScene::createScene();
+    Director::getInstance()->replaceScene(TransitionFade::create(1.0f, scene));
 }
