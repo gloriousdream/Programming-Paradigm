@@ -15,16 +15,11 @@ USING_NS_CC;
 int GameScene::gold = 1000;       // 初始金币
 int GameScene::holyWater = 500;   // 初始圣水
 // 辅助函数：在左侧区域随机位置生成一个闲置士兵
-// 辅助函数：在保留区域（左侧）随机位置生成一个闲置士兵
 void GameScene::spawnHomeSoldier(int type)
 {
     // 1. 获取原始区域
     Rect area = BuildingManager::getInstance()->getSoldierSpawnArea();
 
-    // =========================================================
-    // 【新增修改】整体向左下角移动一个单位
-    // 假设你的格子大小是 64 (根据之前的代码 TILE=64)
-    // =========================================================
     float tileSize = 64.0f;
     area.origin.x -= tileSize; // X 减小 (向左)
     area.origin.y -= tileSize; // Y 减小 (向下)
@@ -51,8 +46,6 @@ void GameScene::spawnHomeSoldier(int type)
 
     if (soldier)
     {
-        // 【关键】因为上面修改了 area，所以这里 setMoveArea 传入的
-        // 也是移动后的新区域，士兵只会在新区域里跑，不会跑回去了
         soldier->setMoveArea(area);
 
         // 设置为“家里的兵”，让它开始闲逛
@@ -164,7 +157,7 @@ void GameScene::loadData()
     holyWater = userDefault->getIntegerForKey("PlayerHolyWater", 500);
 
     // 3. 恢复士兵并计算人口
-    int totalPopulation = 0; // 【新增】用于统计总人口
+    int totalPopulation = 0; // 用于统计总人口
 
     for (int i = 1; i <= 3; i++)
     {
@@ -184,9 +177,7 @@ void GameScene::loadData()
         }
     }
 
-    // =========================================================
-    // 【关键修复】手动更新场景的人口变量，并刷新 UI
-    // =========================================================
+    // 手动更新场景的人口变量，并刷新 UI
     this->population = totalPopulation;
 
     // 强制刷新一次界面（确保 updateResourceDisplay 里有更新 populationLabel 的代码）
@@ -435,9 +426,9 @@ bool GameScene::init()
         });
     _eventDispatcher->addEventListenerWithSceneGraphPriority(collectCoinListener, this);
 
-    updateResourceDisplay();
+    /*updateResourceDisplay();
     this->loadData();
-    return true;
+    return true;*/
 }
 
 void GameScene::updateResourceDisplay()
@@ -487,7 +478,7 @@ void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
     container->addChild(lvLabel);
 
     // 是否满级
-    bool isMaxLv = (targetBuilding->getLevel() >= 3);
+    bool isMaxLv = (targetBuilding->getLevel() >= 3); 
 
     // 升级按钮
     MenuItemImage* upgradeBtn = nullptr;

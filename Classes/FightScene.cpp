@@ -1,6 +1,8 @@
-#include "FightScene.h"
+ï»¿#include "FightScene.h"
 #include "GameScene.h"
 #include <string>
+#include <ctime>  
+#include <cstdlib> 
 #include "TownHall.h"
 #include "ArrowTower.h"
 #include "MilitaryCamp.h"
@@ -34,25 +36,42 @@ FightScene* FightScene::create(int difficulty)
     }
 }
 
-// ¸¨Öú£ºÅĞ¶Ï¸ñ×ÓÊÇ·ñÓĞĞ§
+// å›æ”¾åœºæ™¯åˆ›å»ºå…¥å£
+FightScene* FightScene::createReplayScene(const ReplayData& data)
+{
+    FightScene* pRet = new(std::nothrow) FightScene();
+    if (pRet && pRet->initForReplay(data))
+    {
+        pRet->autorelease();
+        return pRet;
+    }
+    else
+    {
+        delete pRet;
+        pRet = nullptr;
+        return nullptr;
+    }
+}
+
+// è¾…åŠ©ï¼šåˆ¤æ–­æ ¼å­æ˜¯å¦æœ‰æ•ˆ
 bool FightScene::isValidGrid(int x, int y)
 {
     return x >= 0 && x < 30 && y >= 0 && y < 16;
 }
 
-// ¸¨Öú£ºÅĞ¶Ï¸ñ×ÓÊÇ·ñÊÇÇ½
+// è¾…åŠ©ï¼šåˆ¤æ–­æ ¼å­æ˜¯å¦æ˜¯å¢™
 bool FightScene::isGridBlocked(int x, int y)
 {
     if (!isValidGrid(x, y)) return true;
-    return mapGrid[x][y]; // true ´ú±í±»Õ¼ÓÃ
+    return mapGrid[x][y]; // true ä»£è¡¨è¢«å ç”¨
 }
 
-// Ñ°ÕÒ×î¼Ñ¹¥»÷Õ¾Î»
+// å¯»æ‰¾æœ€ä½³æ”»å‡»ç«™ä½
 Vec2 FightScene::findBestAttackPosition(Vec2 startPos, Building* targetBuilding)
 {
     if (!targetBuilding) return startPos;
 
-    // »ñÈ¡½¨ÖşµÄ¸ñ×ÓĞÅÏ¢
+    // è·å–å»ºç­‘çš„æ ¼å­ä¿¡æ¯
     Vec2 targetCenter = targetBuilding->getPosition();
     int gridX = targetCenter.x / TILE_SIZE;
     int gridY = targetCenter.y / TILE_SIZE;
@@ -60,19 +79,19 @@ Vec2 FightScene::findBestAttackPosition(Vec2 startPos, Building* targetBuilding)
     int size = 2;
     if (dynamic_cast<TownHall*>(targetBuilding)) size = 3;
 
-    // ËÑË÷½¨ÖşÍâÎ§Ò»È¦µÄ¸ñ×Ó
-    Vec2 bestPos = startPos; // Ä¬ÈÏÊ§°Ü·µ»ØÔ­µã
+    // æœç´¢å»ºç­‘å¤–å›´ä¸€åœˆçš„æ ¼å­
+    Vec2 bestPos = startPos; // é»˜è®¤å¤±è´¥è¿”å›åŸç‚¹
     float minDst = 999999.0f;
 
-    // ±éÀúÍâÎ§ (´Ó gridX-1 µ½ gridX+size)
+    // éå†å¤–å›´ (ä» gridX-1 åˆ° gridX+size)
     for (int x = gridX - 1; x <= gridX + size; x++)
     {
         for (int y = gridY - 1; y <= gridY + size; y++)
         {
-            // Ìø¹ı½¨ÖşÄÚ²¿
+            // è·³è¿‡å»ºç­‘å†…éƒ¨
             if (x >= gridX && x < gridX + size && y >= gridY && y < gridY + size) continue;
 
-            // Èç¹ûÕâ¸ö¸ñ×ÓÊÇÓĞĞ§µÄÇÒÎª¿Õ
+            // å¦‚æœè¿™ä¸ªæ ¼å­æ˜¯æœ‰æ•ˆçš„ä¸”ä¸ºç©º
             if (isValidGrid(x, y) && !mapGrid[x][y])
             {
                 Vec2 worldPos = Vec2(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
@@ -88,21 +107,27 @@ Vec2 FightScene::findBestAttackPosition(Vec2 startPos, Building* targetBuilding)
     return bestPos;
 }
 
-// A* Ñ°Â·Ëã·¨
+// A* å¯»è·¯ç®—æ³•
 std::vector<Vec2> FightScene::findPath(Vec2 startWorldPos, Vec2 targetWorldPos)
 {
     std::vector<Vec2> path;
 
-    // 1. ×ø±ê×ª»» (ÊÀ½ç -> ¸ñ×Ó)
+    // å®‰å…¨æ‹¦æˆªï¼šå¦‚æœèµ·ç‚¹å·²ç»åœ¨åœ°å›¾å¤–ï¼Œæ ¹æœ¬ä¸ç”¨ç®—è·¯ï¼Œç›´æ¥è¿”å›
+    if (!isValidGrid(startWorldPos.x / TILE_SIZE, startWorldPos.y / TILE_SIZE)) {
+        CCLOG("Start pos is out of bounds!");
+        return path;
+    }
+
+    // 1. åæ ‡è½¬æ¢ (ä¸–ç•Œ -> æ ¼å­)
     int startX = startWorldPos.x / TILE_SIZE;
     int startY = startWorldPos.y / TILE_SIZE;
     int targetX = targetWorldPos.x / TILE_SIZE;
     int targetY = targetWorldPos.y / TILE_SIZE;
 
-    // Èç¹ûÆğµãÖÕµãÖØºÏ£¬Ö±½Ó·µ»Ø
+    // å¦‚æœèµ·ç‚¹ç»ˆç‚¹é‡åˆï¼Œç›´æ¥è¿”å›
     if (startX == targetX && startY == targetY) return path;
 
-    // 2. ³õÊ¼»¯ OpenList ºÍ ClosedList
+    // 2. åˆå§‹åŒ– OpenList å’Œ ClosedList
     std::vector<AStarNode*> openList;
     std::vector<AStarNode*> closedList;
 
@@ -111,12 +136,12 @@ std::vector<Vec2> FightScene::findPath(Vec2 startWorldPos, Vec2 targetWorldPos)
 
     AStarNode* foundTarget = nullptr;
 
-    // ·½ÏòÊı×é£ºÉÏ ÏÂ ×ó ÓÒ
+    // æ–¹å‘æ•°ç»„ï¼šä¸Š ä¸‹ å·¦ å³
     int dir[4][2] = { {0,1}, {0,-1}, {-1,0}, {1,0} };
 
     while (!openList.empty())
     {
-        // ÕÒ F Öµ×îĞ¡µÄ½Úµã
+        // æ‰¾ F å€¼æœ€å°çš„èŠ‚ç‚¹
         auto it = openList.begin();
         AStarNode* current = *it;
         for (auto i = openList.begin(); i != openList.end(); ++i)
@@ -131,14 +156,14 @@ std::vector<Vec2> FightScene::findPath(Vec2 startWorldPos, Vec2 targetWorldPos)
         openList.erase(it);
         closedList.push_back(current);
 
-        // µ½´ïÄ¿±ê£¿
+        // åˆ°è¾¾ç›®æ ‡ï¼Ÿ
         if (current->x == targetX && current->y == targetY)
         {
             foundTarget = current;
             break;
         }
 
-        // ±éÀúÁÚ¾Ó
+        // éå†é‚»å±…
         for (int i = 0; i < 4; i++)
         {
             int nx = current->x + dir[i][0];
@@ -146,7 +171,7 @@ std::vector<Vec2> FightScene::findPath(Vec2 startWorldPos, Vec2 targetWorldPos)
 
             if (isGridBlocked(nx, ny)) continue;
 
-            // ÊÇ·ñÔÚ CloseList
+            // æ˜¯å¦åœ¨ CloseList
             bool inClosed = false;
             for (auto node : closedList)
             {
@@ -154,20 +179,20 @@ std::vector<Vec2> FightScene::findPath(Vec2 startWorldPos, Vec2 targetWorldPos)
             }
             if (inClosed) continue;
 
-            // ÊÇ·ñÔÚ OpenList
+            // æ˜¯å¦åœ¨ OpenList
             AStarNode* neighbor = nullptr;
             for (auto node : openList)
             {
                 if (node->x == nx && node->y == ny) neighbor = node;
             }
 
-            int newG = current->g + 1; // ¼ÙÉèÃ¿¸ñ´ú¼Û 1
+            int newG = current->g + 1; // å‡è®¾æ¯æ ¼ä»£ä»· 1
 
             if (neighbor == nullptr)
             {
                 neighbor = new AStarNode(nx, ny);
                 neighbor->g = newG;
-                neighbor->h = abs(nx - targetX) + abs(ny - targetY); // Âü¹ş¶Ù¾àÀë
+                neighbor->h = abs(nx - targetX) + abs(ny - targetY); // æ›¼å“ˆé¡¿è·ç¦»
                 neighbor->parent = current;
                 openList.push_back(neighbor);
             }
@@ -179,23 +204,23 @@ std::vector<Vec2> FightScene::findPath(Vec2 startWorldPos, Vec2 targetWorldPos)
         }
     }
 
-    // 3. ¹¹½¨Â·¾¶ (»ØËİ)
+    // 3. æ„å»ºè·¯å¾„ (å›æº¯)
     if (foundTarget)
     {
         AStarNode* curr = foundTarget;
         while (curr)
         {
-            // ×ª»ØÊÀ½ç×ø±êÖĞĞÄµã
+            // è½¬å›ä¸–ç•Œåæ ‡ä¸­å¿ƒç‚¹
             path.push_back(Vec2(curr->x * TILE_SIZE + TILE_SIZE / 2, curr->y * TILE_SIZE + TILE_SIZE / 2));
             curr = curr->parent;
         }
-        std::reverse(path.begin(), path.end()); // ·´×ª£¬±ä³É´ÓÆğµãµ½ÖÕµã
+        std::reverse(path.begin(), path.end()); // åè½¬ï¼Œå˜æˆä»èµ·ç‚¹åˆ°ç»ˆç‚¹
     }
 
-    // ÇåÀíÄÚ´æ 
+    // æ¸…ç†å†…å­˜Â 
     for (auto n : openList) delete n;
     for (auto n : closedList) delete n;
-    // foundTarget ÔÚ closedList »ò openList Àï£¬»á±»ÇåÀí
+    // foundTarget åœ¨ closedList æˆ– openList é‡Œï¼Œä¼šè¢«æ¸…ç†
 
     return path;
 }
@@ -206,22 +231,22 @@ void FightScene::showDeployMenu()
 
     auto visibleSize = Director::getInstance()->getVisibleSize();
 
-    // 1. °ëÍ¸Ã÷ÕÚÕÖ
+    // 1. åŠé€æ˜é®ç½©
     _deployMenuLayer = LayerColor::create(Color4B(0, 0, 0, 180));
     this->addChild(_deployMenuLayer, 200);
 
-    // ÍÌÊÉµã»÷£¬·ÀÖ¹Í¸´«
+    // åå™¬ç‚¹å‡»ï¼Œé˜²æ­¢é€ä¼ 
     auto listener = EventListenerTouchOneByOne::create();
     listener->setSwallowTouches(true);
     listener->onTouchBegan = [](Touch*, Event*) { return true; };
     _eventDispatcher->addEventListenerWithSceneGraphPriority(listener, _deployMenuLayer);
 
-    // 2. ±êÌâ
+    // 2. æ ‡é¢˜
     auto title = Label::createWithSystemFont("Select Unit to Deploy", "Arial", 32);
     title->setPosition(Vec2(visibleSize.width / 2, visibleSize.height - 150));
     _deployMenuLayer->addChild(title);
 
-    // ¶¨Òå±øÖÖÊı¾İ
+    // å®šä¹‰å…µç§æ•°æ®
     struct SoldierOption
     {
         std::string img;
@@ -231,9 +256,9 @@ void FightScene::showDeployMenu()
 
     std::vector<SoldierOption> options = {
         {"yemanren_select.png", 1, "Barbarian"},
-        {"juren_select.png",     2, "Giant"},
-        {"gongjianshou_select.png",    3, "Archer"},
-        {"boom_select.png",    4, "Bomber"}
+        {"juren_select.png",2, "Giant"},
+        {"gongjianshou_select.png",3, "Archer"},
+        {"boom_select.png",4, "Bomber"}
     };
 
     Vector<MenuItem*> items;
@@ -250,17 +275,17 @@ void FightScene::showDeployMenu()
 
         item->setScale(1.2f);
 
-        // ÔÚÍ¼±êÏÂ·½¼ÓÃû×Ö
+        // åœ¨å›¾æ ‡ä¸‹æ–¹åŠ åå­—
         int count = GameScene::getGlobalSoldierCount(opt.type);
         std::string nameStr = opt.name + " x" + std::to_string(count);
 
-        // ÑÕÉ«ÌáÊ¾£ºÈç¹ûÃ»ÓĞ±øÁË£¬Ãû×ÖÏÔÊ¾»ÒÉ«£¬·ñÔò°×É«
+        // é¢œè‰²æç¤ºï¼šå¦‚æœæ²¡æœ‰å…µäº†ï¼Œåå­—æ˜¾ç¤ºç°è‰²ï¼Œå¦åˆ™ç™½è‰²
         auto nameLabel = Label::createWithSystemFont(nameStr, "Arial", 20);
         nameLabel->setPosition(Vec2(item->getContentSize().width / 2, -20));
 
         if (count <= 0) {
             nameLabel->setColor(Color3B::GRAY);
-            item->setOpacity(100); // Í¼±ê±ä°µ
+            item->setOpacity(100); // å›¾æ ‡å˜æš—
         }
         else {
             nameLabel->setColor(Color3B::WHITE);
@@ -270,7 +295,7 @@ void FightScene::showDeployMenu()
         items.pushBack(item);
     }
 
-    // 3. ¹Ø±Õ°´Å¥ (X)
+    // 3. å…³é—­æŒ‰é’® (X)
     auto closeLabel = Label::createWithSystemFont("Cancel", "Arial", 28);
     closeLabel->setColor(Color3B::RED);
     auto closeItem = MenuItemLabel::create(closeLabel, [=](Ref*)
@@ -279,7 +304,7 @@ void FightScene::showDeployMenu()
         });
     closeItem->setPosition(Vec2(visibleSize.width / 2, 100));
 
-    // 4. ½«±øÖÖ°´Å¥·ÅÈë²Ëµ¥
+    // 4. å°†å…µç§æŒ‰é’®æ”¾å…¥èœå•
     auto menu = Menu::createWithArray(items);
     menu->alignItemsHorizontallyWithPadding(50);
     menu->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
@@ -304,10 +329,10 @@ void FightScene::initBattleUI()
         }
     );
 
-    // ÉèÖÃ°´Å¥ÔÚÆÁÄ»×óÖĞµÄÎ»ÖÃ
+    // è®¾ç½®æŒ‰é’®åœ¨å±å¹•å·¦ä¸­çš„ä½ç½®
     item->setPosition(Vec2(visibleSize.width - 100, visibleSize.height / 2));
 
-    // ´´½¨²Ëµ¥ÈİÆ÷²¢Ìí¼Ó½øÈ¥
+    // åˆ›å»ºèœå•å®¹å™¨å¹¶æ·»åŠ è¿›å»
     auto menu = Menu::create(item, nullptr);
     menu->setPosition(Vec2::ZERO);
     this->addChild(menu, 100);
@@ -315,63 +340,56 @@ void FightScene::initBattleUI()
 
 void FightScene::onSelectSoldier(int type)
 {
-    // 1. ¼ÇÂ¼Ñ¡ÖĞµÄ±øÖÖ
+    // 1. è®°å½•é€‰ä¸­çš„å…µç§
     _selectedSoldierType = type;
 
     CCLOG("Selected Soldier Type: %d", type);
 
-    // 2. ¹Ø±Õ½çÃæ
+    // 2. å…³é—­ç•Œé¢
     hideDeployMenu();
 }
 
-// Ìí¼ÓÊ¿±øµÄ½Ó¿Ú
+// æ·»åŠ å£«å…µçš„æ¥å£
 void FightScene::addSoldier(Soldier* soldier)
 {
     if (!soldier) return;
 
-    // 1. ¼Óµ½³¡¾°ÏÔÊ¾ (ZÖáÉèÎª15£¬¸ÇÔÚµØÃæÉÏ)
+    // 1. åŠ åˆ°åœºæ™¯æ˜¾ç¤º (Zè½´è®¾ä¸º15ï¼Œç›–åœ¨åœ°é¢ä¸Š)
     this->addChild(soldier, 15);
 
-    // 2. ¼Óµ½Âß¼­ÁĞ±í (¸ø¼ÓÅ©ÅÚË÷µĞÓÃ)
+    // 2. åŠ åˆ°é€»è¾‘åˆ—è¡¨ (ç»™åŠ å†œç‚®ç´¢æ•Œç”¨)
     _mySoldiers.pushBack(soldier);
 }
 
-void FightScene::onMapClick(Vec2 pos)
+// æ‰§è¡Œæ”¾å…µé€»è¾‘
+void FightScene::executeDeploySoldier(int soldierType, Vec2 pos)
 {
-    if (_selectedSoldierType == 0) return;
-
-    // ¼ì²é¿â´æÊÇ·ñ³ä×ã
-    int currentStock = GameScene::getGlobalSoldierCount(_selectedSoldierType);
-    if (currentStock <= 0)
-    {
-        CCLOG("±øÁ¦²»×ã£¡ÎŞ·¨·ÅÖÃ±øÖÖ %d", _selectedSoldierType);
-        return; // ¿â´æ²»×ã£¬Ö±½Ó·µ»Ø£¬²»Ö´ĞĞÏÂÃæµÄ·Å±øÂß¼­
+    // éå›æ”¾æ¨¡å¼ä¸‹æ‰æ‰£åº“å­˜
+    if (!_isReplayMode) {
+        GameScene::addGlobalSoldierCount(soldierType, -1);
     }
 
-    auto soldier = SoldierManager::getInstance()->createSoldier(_selectedSoldierType, pos);
+    // åˆ›å»º
+    auto soldier = SoldierManager::getInstance()->createSoldier(soldierType, pos);
     if (soldier)
     {
-        // ¼ÓÅ©ÅÚÊ¶±ğµ½Õâ¸öÊ¿±ø
+        // åŠ å†œç‚®è¯†åˆ«åˆ°è¿™ä¸ªå£«å…µ
         this->addSoldier(soldier);
 
-        // ¿Û³ı¿â´æ
-        GameScene::addGlobalSoldierCount(_selectedSoldierType, -1);
-        CCLOG("·ÅÖÃ³É¹¦£¡Ê£Óà¿â´æ: %d", currentStock - 1);
-
-        // 1. ÕÒ¹¥»÷Ä¿±ê
+        // 1. æ‰¾æ”»å‡»ç›®æ ‡
         Building* target = getPriorityTarget(pos);
 
         if (target)
         {
             soldier->setTargetBuilding(target);
 
-            // 2. ÕÒÂä½Åµã (Ä¿±ê½¨ÖşÅÔ±ßµÄ¿ÕµØ)
+            // 2. æ‰¾è½è„šç‚¹ (ç›®æ ‡å»ºç­‘æ—è¾¹çš„ç©ºåœ°)
             Vec2 attackPos = findBestAttackPosition(pos, target);
 
-            // 3.ËãÂ·¾¶ (A*)
+            // 3.ç®—è·¯å¾„ (A*)
             std::vector<Vec2> path = findPath(pos, attackPos);
 
-            // 4. °ÑÂ·¾¶¸øÊ¿±ø
+            // 4. æŠŠè·¯å¾„ç»™å£«å…µ
             if (!path.empty())
             {
                 soldier->setPath(path);
@@ -382,6 +400,35 @@ void FightScene::onMapClick(Vec2 pos)
             }
         }
     }
+}
+
+// æ ¡éªŒå’Œå½•åˆ¶
+void FightScene::onMapClick(Vec2 pos)
+{
+    // å›æ”¾æ¨¡å¼ä¸‹ç¦æ­¢ç‚¹å‡»
+    if (_isReplayMode) return;
+
+    if (_selectedSoldierType == 0) return;
+
+    // æ£€æŸ¥åº“å­˜æ˜¯å¦å……è¶³
+    int currentStock = GameScene::getGlobalSoldierCount(_selectedSoldierType);
+    if (currentStock <= 0)
+    {
+        CCLOG("å…µåŠ›ä¸è¶³ï¼æ— æ³•æ”¾ç½®å…µç§ %d", _selectedSoldierType);
+        return; // åº“å­˜ä¸è¶³ï¼Œç›´æ¥è¿”å›ï¼Œä¸æ‰§è¡Œä¸‹é¢çš„æ”¾å…µé€»è¾‘
+    }
+
+    // 1. æ‰§è¡Œæ”¾å…µ
+    executeDeploySoldier(_selectedSoldierType, pos);
+    CCLOG("æ”¾ç½®æˆåŠŸï¼å‰©ä½™åº“å­˜: %d", currentStock - 1);
+
+    // 2. å½•åˆ¶æ“ä½œ
+    ReplayActionData action;
+    action.time = 120.0f - _timeLeft; // è®°å½•å‘ç”Ÿçš„æ—¶é—´ç‚¹ (ä»0å¼€å§‹é€’å¢)
+    action.soldierType = _selectedSoldierType;
+    action.x = pos.x;
+    action.y = pos.y;
+    _currentRecord.actions.push_back(action);
 }
 
 void FightScene::hideDeployMenu()
@@ -400,11 +447,11 @@ bool FightScene::init()
 }
 void FightScene::updateResourceUI()
 {
-    // 1. »ñÈ¡È«¾Ö»¥Í¨Êı¾İ
+    // 1. è·å–å…¨å±€äº’é€šæ•°æ®
     int totalGold = GameScene::getGlobalGold();
     int totalHoly = GameScene::getGlobalHolyWater();
 
-    // 2. ¸üĞÂ Label ÏÔÊ¾
+    // 2. æ›´æ–° Label æ˜¾ç¤º
     if (_goldLabel)
     {
         _goldLabel->setString(std::to_string(totalGold));
@@ -420,7 +467,7 @@ void FightScene::initTouchListener()
     listener->onTouchBegan = [](Touch* t, Event* e) { return true; };
     listener->onTouchEnded = [=](Touch* t, Event* e)
         {
-            // ×ª»»×ø±ê
+            // è½¬æ¢åæ ‡
             Vec2 pos = t->getLocation();
             this->onMapClick(pos);
         };
@@ -429,25 +476,35 @@ void FightScene::initTouchListener()
 
 bool FightScene::initWithDifficulty(int difficulty)
 {
-    // 1. ±ØĞëÏÈµ÷ÓÃ¸¸Àà³õÊ¼»¯
+    // 1. å¿…é¡»å…ˆè°ƒç”¨çˆ¶ç±»åˆå§‹åŒ–
     if (!Scene::init()) return false;
 
     SoldierManager::getInstance()->reset();
     BuildingManager::getInstance()->reset();
 
-    // ÇåÀí FightScene ×Ô¼ºµÄ±äÁ¿
+    // æ¸…ç† FightScene è‡ªå·±çš„å˜é‡
     _mySoldiers.clear();
     _enemyBuildings.clear();
-    memset(mapGrid, 0, sizeof(mapGrid)); // Çå¿ÕµØÍ¼Ç½±Ú¼ÇÂ¼
+    memset(mapGrid, 0, sizeof(mapGrid)); // æ¸…ç©ºåœ°å›¾å¢™å£è®°å½•
+
+    // åˆå§‹åŒ–å½•åƒæ•°æ®
+    _isReplayMode = false;
+    _currentRecord.actions.clear();
+    _currentRecord.difficulty = difficulty;
+
+    // ç”Ÿæˆéšæœºç§å­
+    unsigned int seed = (unsigned int)time(nullptr);
+    std::srand(seed);           // æ’­ç§
+    _currentRecord.seed = seed; // ä¿å­˜ç§å­
 
     _difficulty = difficulty;
 
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
-    // 2. »ù´¡»·¾³
+    // 2. åŸºç¡€ç¯å¢ƒ
 
-    // ±³¾°
+    // èƒŒæ™¯
     auto bg = Sprite::create("GrassBackground.png");
     if (bg)
     {
@@ -459,7 +516,7 @@ bool FightScene::initWithDifficulty(int difficulty)
         this->addChild(bg, 0);
     }
 
-    // ÄÑ¶ÈÎÄ×Ö
+    // éš¾åº¦æ–‡å­—
     std::string diffText = "";
     if (_difficulty == 1) diffText = "Mode: EASY";
     else if (_difficulty == 2) diffText = "Mode: MIDDLE";
@@ -470,7 +527,7 @@ bool FightScene::initWithDifficulty(int difficulty)
     label->setColor(Color3B::RED);
     this->addChild(label, 100);
 
-    // ·µ»Ø°´Å¥
+    // è¿”å›æŒ‰é’®
     MenuItem* closeItem = MenuItemImage::create(
         "CloseNormal.png",
         "CloseSelected.png",
@@ -493,7 +550,7 @@ bool FightScene::initWithDifficulty(int difficulty)
 
     this->addChild(menu, 100);
 
-    // 3. ×ÊÔ´ UI (½ğ±Ò/Ê¥Ë®)
+    // 3. èµ„æº UI (é‡‘å¸/åœ£æ°´)
     auto goldSprite = Sprite::create("GoldCoin.png");
     if (goldSprite) {
         goldSprite->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 50));
@@ -525,19 +582,19 @@ bool FightScene::initWithDifficulty(int difficulty)
     }
     this->updateResourceUI();
 
-    // 4. ³õÊ¼»¯µ¹¼ÆÊ± Label 
-    _timeLeft = 120.0f; // 2·ÖÖÓ
+    // 4. åˆå§‹åŒ–å€’è®¡æ—¶ LabelÂ 
+    _timeLeft = 120.0f; // 2åˆ†é’Ÿ
     _isGameOver = false;
 
-    // ´´½¨µ¹¼ÆÊ± Label
+    // åˆ›å»ºå€’è®¡æ—¶ Label
     _timeLabel = Label::createWithSystemFont("02:00", "Arial", 40);
-    // ·ÅÔÚÆÁÄ»¶¥²¿ÕıÖĞ¼ä£¬ÉÔÎ¢¿¿ÏÂÒ»µã£¬±ÜÃâºÍÄÑ¶ÈÎÄ×ÖÖØµş
+    // æ”¾åœ¨å±å¹•é¡¶éƒ¨æ­£ä¸­é—´ï¼Œç¨å¾®é ä¸‹ä¸€ç‚¹ï¼Œé¿å…å’Œéš¾åº¦æ–‡å­—é‡å 
     _timeLabel->setPosition(Vec2(visibleSize.width / 2, visibleSize.height - 100));
     _timeLabel->setColor(Color3B::WHITE);
     _timeLabel->enableOutline(Color4B::BLACK, 2);
-    this->addChild(_timeLabel, 100); // ¼Óµ½³¡¾°Àï£¬update ²ÅÄÜÓÃµ½Ëü
+    this->addChild(_timeLabel, 100); // åŠ åˆ°åœºæ™¯é‡Œï¼Œupdate æ‰èƒ½ç”¨åˆ°å®ƒ
 
-    // 5. ×¢²á¼àÌı
+    // 5. æ³¨å†Œç›‘å¬
     auto goldListener = EventListenerCustom::create("LOOT_GOLD_EVENT", [this](EventCustom* event) {
         int* amount = static_cast<int*>(event->getUserData());
         if (amount) {
@@ -556,55 +613,136 @@ bool FightScene::initWithDifficulty(int difficulty)
         });
     _eventDispatcher->addEventListenerWithSceneGraphPriority(holyListener, this);
 
-    // 6. ÓÎÏ·Âß¼­³õÊ¼»¯
+    // 6. æ¸¸æˆé€»è¾‘åˆå§‹åŒ–
     generateLevel();
     initBattleUI();
     initTouchListener();
 
-    this->scheduleUpdate(); // ¿ªÆô Update
+    this->scheduleUpdate(); // å¼€å¯ Update
 
     return true;
 }
-// Ã¿Ö¡¸üĞÂÂß¼­
+
+// å›æ”¾åˆå§‹åŒ– 
+bool FightScene::initForReplay(const ReplayData& data)
+{
+    if (!Scene::init()) return false;
+
+    // 1. æ•°æ®é‡ç½®
+    SoldierManager::getInstance()->reset();
+    BuildingManager::getInstance()->reset();
+    _mySoldiers.clear();
+    _enemyBuildings.clear();
+    memset(mapGrid, 0, sizeof(mapGrid));
+
+    // 2. è½½å…¥å›æ”¾æ•°æ®
+    _isReplayMode = true;
+    _replaySource = data;
+    _replayActionIndex = 0;
+    _difficulty = data.difficulty;
+
+    // åº”ç”¨ç§å­
+    std::srand(_replaySource.seed);
+
+    auto visibleSize = Director::getInstance()->getVisibleSize();
+    Vec2 origin = Director::getInstance()->getVisibleOrigin();
+
+    // 3. èƒŒæ™¯ (å¤åˆ¶)
+    auto bg = Sprite::create("GrassBackground.png");
+    if (bg) {
+        bg->setAnchorPoint(Vec2::ZERO);
+        bg->setPosition(origin);
+        float scaleX = visibleSize.width / bg->getContentSize().width;
+        float scaleY = visibleSize.height / bg->getContentSize().height;
+        bg->setScale(std::max(scaleX, scaleY));
+        this->addChild(bg, 0);
+    }
+
+    // 4. å›æ”¾æç¤ºæ–‡å­—
+    auto replayLabel = Label::createWithSystemFont("--- REPLAY MODE ---", "Arial", 48);
+    replayLabel->setPosition(visibleSize.width / 2, visibleSize.height - 50);
+    replayLabel->setColor(Color3B::GREEN);
+    replayLabel->enableOutline(Color4B::BLACK, 3);
+    this->addChild(replayLabel, 100);
+
+    // 5. åˆå§‹åŒ–æ—¶é—´
+    _timeLeft = 120.0f;
+    _isGameOver = false;
+    _timeLabel = Label::createWithSystemFont("02:00", "Arial", 40);
+    _timeLabel->setPosition(Vec2(visibleSize.width / 2, visibleSize.height - 100));
+    _timeLabel->enableOutline(Color4B::BLACK, 2);
+    this->addChild(_timeLabel, 100);
+
+    // 6. ç”Ÿæˆå…³å¡ 
+    generateLevel();
+
+    this->scheduleUpdate();
+    return true;
+}
+
+// æ¯å¸§æ›´æ–°é€»è¾‘
 void FightScene::update(float dt)
 {
-    // Èç¹ûÓÎÏ·½áÊøÁË£¬¾Í²»ÔÙÖ´ĞĞÂß¼­
+    // å¦‚æœæ¸¸æˆç»“æŸäº†ï¼Œå°±ä¸å†æ‰§è¡Œé€»è¾‘
     if (_isGameOver) return;
 
-    // 1. µ¹¼ÆÊ±Âß¼­
+    // 1. å€’è®¡æ—¶é€»è¾‘
     _timeLeft -= dt;
     if (_timeLeft < 0) _timeLeft = 0;
 
-    // ¸üĞÂ Label ÏÔÊ¾ (¸ñÊ½ MM:SS)
+    // æ›´æ–° Label æ˜¾ç¤º (æ ¼å¼ MM:SS)
     int minutes = (int)(_timeLeft / 60);
     int seconds = (int)(_timeLeft) % 60;
     _timeLabel->setString(cocos2d::StringUtils::format("%02d:%02d", minutes, seconds));
 
-    // 2. ÇåÀíÂß¼­ (Ê¿±ø + ½¨Öş)
+    // å›æ”¾è‡ªåŠ¨æ“ä½œé€»è¾‘
+    if (_isReplayMode)
+    {
+        float timePassed = 120.0f - _timeLeft;
+        // æ£€æŸ¥æ˜¯å¦æœ‰æ“ä½œéœ€è¦æ‰§è¡Œ
+        while (_replayActionIndex < _replaySource.actions.size())
+        {
+            auto& action = _replaySource.actions[_replayActionIndex];
+            if (timePassed >= action.time)
+            {
+                // æ—¶é—´åˆ°äº†ï¼Œæ‰§è¡Œæ“ä½œ
+                executeDeploySoldier(action.soldierType, Vec2(action.x, action.y));
+                _replayActionIndex++;
+            }
+            else
+            {
+                // æ—¶é—´æ²¡åˆ°ï¼Œè·³å‡ºå¾ªç¯ç­‰å¾…
+                break;
+            }
+        }
+    }
 
-    // A. ÇåÀíËÀµôµÄÊ¿±ø
+    // 2. æ¸…ç†é€»è¾‘ (å£«å…µ + å»ºç­‘)
+
+    // A. æ¸…ç†æ­»æ‰çš„å£«å…µ
     for (int i = _mySoldiers.size() - 1; i >= 0; i--)
     {
         Soldier* s = _mySoldiers.at(i);
-        if (s->getParent() == nullptr || s->getHP() <= 0)
+        if (!s || s->getParent() == nullptr || s->getHP() <= 0)
         {
+            // ç¡®ä¿ä» vector ç§»é™¤
             _mySoldiers.erase(i);
         }
     }
 
-    // B. ÇåÀí±»´İ»ÙµÄ½¨Öş
-    // ´Ó _enemyBuildings ÁĞ±íÖĞÒÆ³ıËü£¬·ñÔòÎŞ·¨ÅĞ¶ÏÊ¤Àû¡£
+    // B. æ¸…ç†è¢«æ‘§æ¯çš„å»ºç­‘
+    // ä» _enemyBuildings åˆ—è¡¨ä¸­ç§»é™¤å®ƒï¼Œå¦åˆ™æ— æ³•åˆ¤æ–­èƒœåˆ©ã€‚
     for (int i = _enemyBuildings.size() - 1; i >= 0; i--)
     {
         Building* b = _enemyBuildings.at(i);
-        // Èç¹û½¨ÖşÒÑ¾­±»ÒÆ³ö³¡¾°(±»Ïú»Ù)£¬»òÕßÑªÁ¿<=0
+        // å¦‚æœå»ºç­‘å·²ç»è¢«ç§»å‡ºåœºæ™¯(è¢«é”€æ¯)ï¼Œæˆ–è€…è¡€é‡<=0
         if (b->getParent() == nullptr || b->getHP() <= 0)
         {
             _enemyBuildings.erase(i);
         }
     }
 
-    // 3. ÓÎÏ·Âß¼­ (·ÀÓùËş¹¥»÷)
+    // 3. æ¸¸æˆé€»è¾‘ (é˜²å¾¡å¡”æ”»å‡»)
     for (auto building : _enemyBuildings)
     {
         Cannon* cannon = dynamic_cast<Cannon*>(building);
@@ -625,51 +763,51 @@ void FightScene::update(float dt)
             if (target) cannon->fireAt(target);
         }
     }
-    // 4. ¼ì²éÊ¤¸º
+    // 4. æ£€æŸ¥èƒœè´Ÿ
     checkGameStatus();
 }
 
-// ÊµÏÖË÷µĞÂß¼­
+// å®ç°ç´¢æ•Œé€»è¾‘
 Building* FightScene::getPriorityTarget(Vec2 soldierPos)
 {
     Building* bestTarget = nullptr;
     float minDistance = 99999.0f;
-    int highestPriority = -1; // ÓÅÏÈ¼¶£º3=·ÀÓùËş, 2=´ó±¾Óª, 1=ÆäËû
+    int highestPriority = -1; // ä¼˜å…ˆçº§ï¼š3=é˜²å¾¡å¡”, 2=å¤§æœ¬è¥, 1=å…¶ä»–
 
-    // ±éÀúËùÓĞµĞ·½½¨Öş
+    // éå†æ‰€æœ‰æ•Œæ–¹å»ºç­‘
     for (auto building : _enemyBuildings)
     {
         if (!building || building->getParent() == nullptr) continue;
 
-        // 1. È·¶¨µ±Ç°½¨ÖşµÄÓÅÏÈ¼¶
+        // 1. ç¡®å®šå½“å‰å»ºç­‘çš„ä¼˜å…ˆçº§
         int priority = 1;
 
         if (dynamic_cast<ArrowTower*>(building))
         {
-            priority = 3; // ×î¸ßÓÅÏÈ¼¶£ºÏÈ²ğËş
+            priority = 3; // æœ€é«˜ä¼˜å…ˆçº§ï¼šå…ˆæ‹†å¡”
         }
-        // ¼ÓÅ©ÅÚÒ²ÊÇ×î¸ßÓÅÏÈ¼¶
+        // åŠ å†œç‚®ä¹Ÿæ˜¯æœ€é«˜ä¼˜å…ˆçº§
         else if (dynamic_cast<Cannon*>(building))
         {
             priority = 3;
         }
         else if (dynamic_cast<TownHall*>(building))
         {
-            priority = 2; // ´Î¸ß£º´ó±¾Óª
+            priority = 2; // æ¬¡é«˜ï¼šå¤§æœ¬è¥
         }
 
-        // 2. ¼ÆËã¾àÀë
+        // 2. è®¡ç®—è·ç¦»
         float dist = soldierPos.distance(building->getPosition());
 
-        // 3. ±È½ÏÂß¼­£º
-        // Çé¿öA: ·¢ÏÖÁË¸ü¸ßÓÅÏÈ¼¶µÄ½¨Öş -> Ö±½ÓËø¶¨£¬²»¹Ü¾àÀë
+        // 3. æ¯”è¾ƒé€»è¾‘ï¼š
+        // æƒ…å†µA: å‘ç°äº†æ›´é«˜ä¼˜å…ˆçº§çš„å»ºç­‘ -> ç›´æ¥é”å®šï¼Œä¸ç®¡è·ç¦»
         if (priority > highestPriority)
         {
             highestPriority = priority;
             bestTarget = building;
             minDistance = dist;
         }
-        // Çé¿öB: ÓÅÏÈ¼¶ÏàÍ¬ -> Ñ¡¸ü½üµÄ
+        // æƒ…å†µB: ä¼˜å…ˆçº§ç›¸åŒ -> é€‰æ›´è¿‘çš„
         else if (priority == highestPriority)
         {
             if (dist < minDistance)
@@ -685,37 +823,37 @@ Building* FightScene::getPriorityTarget(Vec2 soldierPos)
 
 void FightScene::generateLevel()
 {
-    // 1. ³õÊ¼»¯
+    // 1. åˆå§‹åŒ–
     memset(mapGrid, 0, sizeof(mapGrid));
     _enemyBuildings.clear();
 
-    // 2. ÄÑ¶ÈÉè¶¨ (Ô­ÓĞÂß¼­ + ĞÂÔö×ÊÔ´½¨ÖşÊıÁ¿)
+    // 2. éš¾åº¦è®¾å®š (åŸæœ‰é€»è¾‘ + æ–°å¢èµ„æºå»ºç­‘æ•°é‡)
     int targetLevel = 1;
     int arrowTowerCount = 0;
     int cannonCount = 0;
-    
-    // ¶¨ÒåÒªÉú³ÉµÄ×ÊÔ´½¨ÖşÊıÁ¿
+
+    // å®šä¹‰è¦ç”Ÿæˆçš„èµ„æºå»ºç­‘æ•°é‡
     int goldStageCount = 0;
     int elixirTankCount = 0;
 
-    if (_difficulty == 1) { 
-        targetLevel = 1; arrowTowerCount = 1; cannonCount = 0; 
-        goldStageCount = 1; elixirTankCount = 1; // ¼òµ¥£º¸÷1¸ö
+    if (_difficulty == 1) {
+        targetLevel = 1; arrowTowerCount = 1; cannonCount = 0;
+        goldStageCount = 1; elixirTankCount = 1; // ç®€å•ï¼šå„1ä¸ª
     }
-    else if (_difficulty == 2) { 
-        targetLevel = 2; arrowTowerCount = 1; cannonCount = 1; 
-        goldStageCount = 2; elixirTankCount = 2; // ÖĞµÈ£º¸÷2¸ö
+    else if (_difficulty == 2) {
+        targetLevel = 2; arrowTowerCount = 1; cannonCount = 1;
+        goldStageCount = 2; elixirTankCount = 2; // ä¸­ç­‰ï¼šå„2ä¸ª
     }
-    else if (_difficulty == 3) { 
-        targetLevel = 3; arrowTowerCount = 2; cannonCount = 1; 
-        goldStageCount = 3; elixirTankCount = 3; // À§ÄÑ£º¸÷3¸ö
+    else if (_difficulty == 3) {
+        targetLevel = 3; arrowTowerCount = 2; cannonCount = 1;
+        goldStageCount = 3; elixirTankCount = 3; // å›°éš¾ï¼šå„3ä¸ª
     }
 
-    // µÚÒ»²½£º·ÅÖÃ´ó±¾Óª (TownHall 3x3) -- ±£³ÖÄãµÄÔ­Âß¼­²»¶¯
+    // ç¬¬ä¸€æ­¥ï¼šæ”¾ç½®å¤§æœ¬è¥ (TownHall 3x3) -- ä¿æŒä½ çš„åŸé€»è¾‘ä¸åŠ¨
     auto townHall = TownHall::create();
     setBuildingLevel(townHall, targetLevel);
 
-    // ¼ÆËã¾ÓÖĞ×ø±ê
+    // è®¡ç®—å±…ä¸­åæ ‡
     int thCol = 13;
     int thRow = 6;
 
@@ -724,10 +862,10 @@ void FightScene::generateLevel()
     this->addChild(townHall, 10);
     _enemyBuildings.pushBack(townHall);
 
-    // µÚ¶ş²½£º×¼±¸½¨ÖşÁĞ±í -- ½«ËùÓĞÒªÉú³ÉµÄ½¨Öş¶¼·Å½øÕâ¸öÁĞ±í
+    // ç¬¬äºŒæ­¥ï¼šå‡†å¤‡å»ºç­‘åˆ—è¡¨ -- å°†æ‰€æœ‰è¦ç”Ÿæˆçš„å»ºç­‘éƒ½æ”¾è¿›è¿™ä¸ªåˆ—è¡¨
     std::vector<Building*> pendingBuildings;
 
-    // 2.1 Ô­ÓĞµÄ½¨Öş
+    // 2.1 åŸæœ‰çš„å»ºç­‘
     pendingBuildings.push_back(MilitaryCamp::create());
 
     auto water = WaterCollection::create();
@@ -738,7 +876,7 @@ void FightScene::generateLevel()
     coin->setEnemyState(true);
     pendingBuildings.push_back(coin);
 
-    // 2.2 ·ÀÓùËşºÍ¼ÓÅ©ÅÚ
+    // 2.2 é˜²å¾¡å¡”å’ŒåŠ å†œç‚®
     for (int i = 0; i < arrowTowerCount; i++) {
         pendingBuildings.push_back(ArrowTower::create());
     }
@@ -746,19 +884,19 @@ void FightScene::generateLevel()
         pendingBuildings.push_back(Cannon::create());
     }
 
-    // 2.3 ½ğ¿âºÍË®¹Ş
+    // 2.3 é‡‘åº“å’Œæ°´ç½
     for (int i = 0; i < goldStageCount; i++) {
         auto gs = GoldStage::create();
-        gs->updateVisuals(5000, 5000); // ÉèÎªÂú×ÊÔ´×´Ì¬
+        gs->updateVisuals(5000, 5000); // è®¾ä¸ºæ»¡èµ„æºçŠ¶æ€
         pendingBuildings.push_back(gs);
     }
     for (int i = 0; i < elixirTankCount; i++) {
         auto et = ElixirTank::create();
-        et->updateVisuals(5000, 5000); // ÉèÎªÂú×ÊÔ´×´Ì¬
+        et->updateVisuals(5000, 5000); // è®¾ä¸ºæ»¡èµ„æºçŠ¶æ€
         pendingBuildings.push_back(et);
     }
 
-    // µÚÈı²½£ºÉú³ÉºòÑ¡×ø±ê 
+    // ç¬¬ä¸‰æ­¥ï¼šç”Ÿæˆå€™é€‰åæ ‡Â 
     struct GridPoint {
         int x, y;
         float distanceScore;
@@ -771,26 +909,25 @@ void FightScene::generateLevel()
     for (int x = 1; x <= 28; x++) {
         for (int y = 1; y <= 14; y++) {
 
-            // ÅÅ³ıµôÒÑ¾­±»´ó±¾ÓªÕ¼ÓÃµÄÇøÓò
+            // æ’é™¤æ‰å·²ç»è¢«å¤§æœ¬è¥å ç”¨çš„åŒºåŸŸ
             if (x >= thCol && x < thCol + 3 && y >= thRow && y < thRow + 3) continue;
 
             float dx = x - centerX;
             float dy = y - centerY;
             float dist = sqrt(dx * dx + dy * dy);
 
-            // ¼ÓÉÏËæ»úÔëÒô
-            float randomNoise = CCRANDOM_0_1() * 3.0f;
+            float randomNoise = (static_cast<float>(rand()) / RAND_MAX) * 3.0f;
 
             validSpots.push_back({ x, y, dist + randomNoise });
         }
     }
 
-    // °´¾àÀëÅÅĞò
+    // æŒ‰è·ç¦»æ’åº
     std::sort(validSpots.begin(), validSpots.end(), [](const GridPoint& a, const GridPoint& b) {
         return a.distanceScore < b.distanceScore;
         });
 
-    // µÚËÄ²½£º·ÅÖÃ (Ñ­»··ÅÖÃ pendingBuildings ÀïµÄËùÓĞ½¨Öş)
+    // ç¬¬å››æ­¥ï¼šæ”¾ç½® (å¾ªç¯æ”¾ç½® pendingBuildings é‡Œçš„æ‰€æœ‰å»ºç­‘)
     for (auto b : pendingBuildings)
     {
         setBuildingLevel(b, targetLevel);
@@ -798,8 +935,8 @@ void FightScene::generateLevel()
 
         for (const auto& spot : validSpots)
         {
-            // ÆäËû½¨Öş¶¼ÊÇ 2x2
-            // ÕâÀïµÄ isAreaFree »á×Ô¶¯´¦Àí GoldStage ºÍ ElixirTank µÄÎ»ÖÃÅĞ¶Ï
+            // å…¶ä»–å»ºç­‘éƒ½æ˜¯ 2x2
+            // è¿™é‡Œçš„ isAreaFree ä¼šè‡ªåŠ¨å¤„ç† GoldStage å’Œ ElixirTank çš„ä½ç½®åˆ¤æ–­
             if (isAreaFree(spot.x, spot.y, 2, 2))
             {
                 markArea(spot.x, spot.y, 2, 2);
@@ -817,18 +954,18 @@ void FightScene::generateLevel()
         }
     }
 }
-// ¼ì²éÇøÓòÊÇ·ñ¿ÕÏĞ (°üº¬ 1 ¸ñ×ÓµÄ°²È«¼ä¾à)
+// æ£€æŸ¥åŒºåŸŸæ˜¯å¦ç©ºé—² (åŒ…å« 1 æ ¼å­çš„å®‰å…¨é—´è·)
 bool FightScene::isAreaFree(int gridX, int gridY, int width, int height)
 {
-    // 1. »ù´¡±ß½ç¼ì²é£º½¨Öş±¾Ìå¾ø¶Ô²»ÄÜ³¬³öµØÍ¼
-    // µØÍ¼´óĞ¡: 30 x 16
+    // 1. åŸºç¡€è¾¹ç•Œæ£€æŸ¥ï¼šå»ºç­‘æœ¬ä½“ç»å¯¹ä¸èƒ½è¶…å‡ºåœ°å›¾
+    // åœ°å›¾å¤§å°: 30 x 16
     if (gridX < 0 || gridX + width > 30 || gridY < 0 || gridY + height > 16)
         return false;
 
-    // 2. À©³ä¼ì²é·¶Î§£º¼ì²é±¾Ìå + ÖÜÎ§Ò»È¦ (padding)
-    // ±ÈÈç½¨ÖşÊÇ 2x2£¬ÎÒÃÇÊµ¼Ê¼ì²é 4x4 µÄ·¶Î§
+    // 2. æ‰©å……æ£€æŸ¥èŒƒå›´ï¼šæ£€æŸ¥æœ¬ä½“ + å‘¨å›´ä¸€åœˆ (padding)
+    // æ¯”å¦‚å»ºç­‘æ˜¯ 2x2ï¼Œæˆ‘ä»¬å®é™…æ£€æŸ¥ 4x4 çš„èŒƒå›´
     int startX = gridX - 1;
-    int endX = gridX + width + 1; // ×¢ÒâÕâÀïÊÇ +1£¬ÒòÎªÑ­»·ÊÇ < endX
+    int endX = gridX + width + 1; // æ³¨æ„è¿™é‡Œæ˜¯ +1ï¼Œå› ä¸ºå¾ªç¯æ˜¯ < endX
     int startY = gridY - 1;
     int endY = gridY + height + 1;
 
@@ -837,13 +974,13 @@ bool FightScene::isAreaFree(int gridX, int gridY, int width, int height)
         for (int y = startY; y < endY; y++)
         {
 
-            // Èç¹û¼ì²éµã³¬³öÁËµØÍ¼±ß½ç(±ÈÈç x=-1)£¬ÎÒÃÇÈÏÎªÄÇÊÇ¡°¿Õ¡±µÄ£¨±ßÔµ¿ÉÒÔ×ß»òÕß×÷Îª¼ä¸ô£©£¬
-            // ËùÒÔÖ»¹ØĞÄÔÚµØÍ¼·¶Î§ÄÚµÄ¸ñ×ÓÊÇ·ñ±»Õ¼ÓÃ¡£
+            // å¦‚æœæ£€æŸ¥ç‚¹è¶…å‡ºäº†åœ°å›¾è¾¹ç•Œ(æ¯”å¦‚ x=-1)ï¼Œæˆ‘ä»¬è®¤ä¸ºé‚£æ˜¯â€œç©ºâ€çš„ï¼ˆè¾¹ç¼˜å¯ä»¥èµ°æˆ–è€…ä½œä¸ºé—´éš”ï¼‰ï¼Œ
+            // æ‰€ä»¥åªå…³å¿ƒåœ¨åœ°å›¾èŒƒå›´å†…çš„æ ¼å­æ˜¯å¦è¢«å ç”¨ã€‚
             if (x >= 0 && x < 30 && y >= 0 && y < 16)
             {
                 if (mapGrid[x][y])
                 {
-                    // Ö»Òª·¢ÏÖÈÎºÎÒ»¸ö¸ñ×Ó±»Õ¼ÓÃ£¬¾ÍËµÃ÷Ì«¼·ÁË
+                    // åªè¦å‘ç°ä»»ä½•ä¸€ä¸ªæ ¼å­è¢«å ç”¨ï¼Œå°±è¯´æ˜å¤ªæŒ¤äº†
                     return false;
                 }
             }
@@ -853,22 +990,29 @@ bool FightScene::isAreaFree(int gridX, int gridY, int width, int height)
     return true;
 }
 
-// ±ê¼ÇÍø¸ñÇøÓòÎªÕ¼ÓÃ
+// æ ‡è®°ç½‘æ ¼åŒºåŸŸä¸ºå ç”¨
 void FightScene::markArea(int gridX, int gridY, int width, int height)
 {
     for (int x = 0; x < width; x++) {
         for (int y = 0; y < height; y++) {
-            mapGrid[gridX + x][gridY + y] = true;
+            int targetX = gridX + x;
+            int targetY = gridY + y;
+
+            // æ£€æŸ¥è¾¹ç•Œ
+            if (targetX >= 0 && targetX < 30 && targetY >= 0 && targetY < 16)
+            {
+                mapGrid[targetX][targetY] = true;
+            }
         }
     }
 }
 
-// ¼ÆËãÏñËØ×ø±ê (Îü¸½ÖĞĞÄ)
+// è®¡ç®—åƒç´ åæ ‡ (å¸é™„ä¸­å¿ƒ)
 Vec2 FightScene::getPositionForGrid(int gridX, int gridY, int width, int height)
 {
-    // ¹«Ê½£º
-    // X = ¸ñ×ÓË÷Òı * 64 + (Õ¼ÓÃ¸ñ×ÓÊı * 64) / 2
-    // ÕâÑùÄÜ±£Ö¤Ãªµã(0.5, 0.5)µÄÍ¼Æ¬ÕıºÃ¾ÓÖĞÏÔÊ¾ÔÚÕâĞ©¸ñ×ÓÉÏ
+    // å…¬å¼ï¼š
+    // X = æ ¼å­ç´¢å¼• * 64 + (å ç”¨æ ¼å­æ•° * 64) / 2
+    // è¿™æ ·èƒ½ä¿è¯é”šç‚¹(0.5, 0.5)çš„å›¾ç‰‡æ­£å¥½å±…ä¸­æ˜¾ç¤ºåœ¨è¿™äº›æ ¼å­ä¸Š
 
     float posX = gridX * TILE_SIZE + (width * TILE_SIZE) / 2.0f;
     float posY = gridY * TILE_SIZE + (height * TILE_SIZE) / 2.0f;
@@ -876,7 +1020,7 @@ Vec2 FightScene::getPositionForGrid(int gridX, int gridY, int width, int height)
     return Vec2(posX, posY);
 }
 
-// ¸¨Öú£ºÉı¼¶½¨Öş 
+// è¾…åŠ©ï¼šå‡çº§å»ºç­‘Â 
 void FightScene::setBuildingLevel(Building* building, int targetLevel)
 {
     if (!building) return;
@@ -886,27 +1030,35 @@ void FightScene::setBuildingLevel(Building* building, int targetLevel)
     }
 }
 
-// Ê¤¸ºÅĞ¶¨
+// èƒœè´Ÿåˆ¤å®š
 void FightScene::checkGameStatus()
 {
-    // 1. Ê¤ÀûÅĞ¶¨£ºËùÓĞµĞÈË½¨Öş¶¼±»´İ»Ù
+    // 1. èƒœåˆ©åˆ¤å®šï¼šæ‰€æœ‰æ•Œäººå»ºç­‘éƒ½è¢«æ‘§æ¯
     if (_enemyBuildings.empty())
     {
         showGameOver(true); // Victory
         return;
     }
 
-    // 2. Ê§°ÜÅĞ¶¨ A£ºÊ±¼äºÄ¾¡
+    // 2. å¤±è´¥åˆ¤å®š Aï¼šæ—¶é—´è€—å°½
     if (_timeLeft <= 0)
     {
         showGameOver(false); // Defeat
         return;
     }
 
-    // 3. Ê§°ÜÅĞ¶¨ B£ºÎŞ±ø¿É·Å ÇÒ ³¡ÉÏ±øÈ«ËÀ
-    // ¼ì²éÊÇ·ñÓĞ¿â´æ
+    // 3. å¤±è´¥åˆ¤å®š Bï¼šæ— å…µå¯æ”¾ ä¸” åœºä¸Šå…µå…¨æ­»
+    // å›æ”¾æ¨¡å¼ä¸‹ä¸æ£€æŸ¥åº“å­˜å¤±è´¥æ¡ä»¶ï¼Œåªçœ‹åœºä¸Šå…µ
+    if (_isReplayMode) {
+        if (_mySoldiers.empty() && !_enemyBuildings.empty() && _replayActionIndex >= _replaySource.actions.size()) {
+            showGameOver(false);
+            return;
+        }
+        return;
+    }
+
+    // æ£€æŸ¥æ˜¯å¦æœ‰åº“å­˜
     bool hasReserves = false;
-    // ¼ÙÉèÄãÓĞ4ÖÖ±ø£¬ÀàĞÍID 1~4
     for (int i = 1; i <= 4; i++) {
         if (GameScene::getGlobalSoldierCount(i) > 0) {
             hasReserves = true;
@@ -914,7 +1066,7 @@ void FightScene::checkGameStatus()
         }
     }
 
-    // Èç¹û (Ã»¿â´æ) AND (³¡ÉÏÃ»»î±ø) AND (»¹ÓĞµĞÈË½¨Öş) -> Êä
+    // å¦‚æœ (æ²¡åº“å­˜) AND (åœºä¸Šæ²¡æ´»å…µ) AND (è¿˜æœ‰æ•Œäººå»ºç­‘) -> è¾“
     if (!hasReserves && _mySoldiers.empty() && !_enemyBuildings.empty())
     {
         showGameOver(false); // Defeat
@@ -924,28 +1076,28 @@ void FightScene::checkGameStatus()
 
 void FightScene::showGameOver(bool isWin)
 {
-    _isGameOver = true; // Ëø¶¨×´Ì¬£¬·ÀÖ¹update¼ÌĞøÅÜ
+    _isGameOver = true; // é”å®šçŠ¶æ€ï¼Œé˜²æ­¢updateç»§ç»­è·‘
 
     auto visibleSize = Director::getInstance()->getVisibleSize();
 
-    // 1. ´´½¨½á¹ûÍ¼Æ¬
+    // 1. åˆ›å»ºç»“æœå›¾ç‰‡
     std::string imgName = isWin ? "Victory.png" : "Defeat.png";
     auto resultSprite = Sprite::create(imgName);
 
     if (resultSprite)
     {
         resultSprite->setPosition(visibleSize.width / 2, visibleSize.height / 2);
-        resultSprite->setScale(0.1f); // ³õÊ¼ºÜĞ¡£¬×öµ¯´°¶¯»­
-        this->addChild(resultSprite, 200); // ·ÅÔÚ×îÉÏ²ã
+        resultSprite->setScale(0.1f); // åˆå§‹å¾ˆå°ï¼Œåšå¼¹çª—åŠ¨ç”»
+        this->addChild(resultSprite, 200); // æ”¾åœ¨æœ€ä¸Šå±‚
 
-        // ¶¯»­£ºµ¯³öÀ´
+        // åŠ¨ç”»ï¼šå¼¹å‡ºæ¥
         auto scaleTo = ScaleTo::create(0.5f, 1.0f);
         auto ease = EaseBackOut::create(scaleTo);
         resultSprite->runAction(ease);
     }
     else
     {
-        // Èç¹ûÃ»Í¼£¬ÓÃÎÄ×Ö´úÌæ
+        // å¦‚æœæ²¡å›¾ï¼Œç”¨æ–‡å­—ä»£æ›¿
         auto label = Label::createWithSystemFont(isWin ? "VICTORY!" : "DEFEAT...", "Arial", 80);
         label->setPosition(visibleSize.width / 2, visibleSize.height / 2);
         label->setColor(isWin ? Color3B::YELLOW : Color3B::RED);
@@ -953,18 +1105,63 @@ void FightScene::showGameOver(bool isWin)
         this->addChild(label, 200);
     }
 
-    // 2. Í£Ö¹ËùÓĞÕ½¶·Âß¼­
+    // 2. åœæ­¢æ‰€æœ‰æˆ˜æ–—é€»è¾‘
     this->unscheduleUpdate();
 
-    // 3. Í£Ö¹ËùÓĞÕıÔÚ½øĞĞµÄ¶¯×÷ (ÈÃÊ¿±øºÍËşÍ£ÏÂÀ´)
-    // ±éÀúËùÓĞ×Ó½ÚµãÔİÍ£¶¯×÷
+    // 3. åœæ­¢æ‰€æœ‰æ­£åœ¨è¿›è¡Œçš„åŠ¨ä½œ (è®©å£«å…µå’Œå¡”åœä¸‹æ¥)
+    // éå†æ‰€æœ‰å­èŠ‚ç‚¹æš‚åœåŠ¨ä½œ
     for (auto child : this->getChildren()) {
 
-        // Èç¹ûÕâ¸ö½ÚµãÊÇÎÒÃÇ±ê¼ÇµÄ¡°ÍË³ö²Ëµ¥¡±£¬¾ÍÌø¹ı£¬²»ÔİÍ£
+        // å¦‚æœè¿™ä¸ªèŠ‚ç‚¹æ˜¯æˆ‘ä»¬æ ‡è®°çš„â€œé€€å‡ºèœå•â€ï¼Œå°±è·³è¿‡ï¼Œä¸æš‚åœ
         if (child->getTag() == 9999) continue;
 
         child->pause();
     }
+
+    // æ·»åŠ å›æ”¾/é€€å‡ºæŒ‰é’®èœå•
+    Menu* menu = nullptr;
+
+    if (!_isReplayMode)
+    {
+        // æ­£å¸¸ç»“æŸï¼šæ˜¾ç¤ºâ€œè§‚çœ‹å›æ”¾â€å’Œâ€œé€€å‡ºâ€
+        auto replayLabel = Label::createWithSystemFont("Watch Replay", "Arial", 40);
+        replayLabel->setColor(Color3B::GREEN);
+        replayLabel->enableOutline(Color4B::BLACK, 2);
+
+        auto replayItem = MenuItemLabel::create(replayLabel, [=](Ref*) {
+            // åˆ‡æ¢åˆ°å›æ”¾åœºæ™¯ï¼Œä¼ å…¥åˆšæ‰å½•åˆ¶çš„æ•°æ®
+            auto scene = FightScene::createReplayScene(_currentRecord);
+            Director::getInstance()->replaceScene(TransitionFade::create(0.5f, scene));
+            });
+
+        auto exitLabel = Label::createWithSystemFont("Exit", "Arial", 40);
+        exitLabel->setColor(Color3B::RED);
+        exitLabel->enableOutline(Color4B::BLACK, 2);
+
+        auto exitItem = MenuItemLabel::create(exitLabel, [=](Ref*) {
+            Director::getInstance()->popScene();
+            });
+
+        menu = Menu::create(replayItem, exitItem, nullptr);
+        menu->alignItemsHorizontallyWithPadding(100);
+    }
+    else
+    {
+        // å›æ”¾ç»“æŸï¼šåªæ˜¾ç¤ºâ€œè¿”å›â€
+        auto backLabel = Label::createWithSystemFont("Back", "Arial", 40);
+        backLabel->enableOutline(Color4B::BLACK, 2);
+
+        auto backItem = MenuItemLabel::create(backLabel, [=](Ref*) {
+            Director::getInstance()->popScene();
+            });
+        menu = Menu::create(backItem, nullptr);
+    }
+
+    if (menu) {
+        menu->setPosition(visibleSize.width / 2, visibleSize.height / 2 - 200);
+        this->addChild(menu, 300);
+    }
+    // -------------------------------------
 
     CCLOG("Game Over: %s", isWin ? "Win" : "Lose");
 }

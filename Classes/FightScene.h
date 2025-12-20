@@ -3,10 +3,24 @@
 
 #include "cocos2d.h"
 #include "Building.h"
-#include "Cannon.h"   
+#include "Cannon.h"
 #include "Soldier.h"
 #include "GoldStage.h"
 #include "ElixirTank.h"
+
+// 回放数据结构
+struct ReplayActionData {
+    float time;      // 时间点
+    int soldierType; // 兵种
+    float x, y;      // 坐标
+};
+
+struct ReplayData {
+    unsigned int seed; // 随机种子 (核心)
+    int difficulty;
+    std::vector<ReplayActionData> actions; // 操作列表
+};
+
 // 定义一个简单的结构体用于 A* 算法
 struct AStarNode
 {
@@ -23,7 +37,15 @@ class FightScene : public cocos2d::Scene
 public:
     static cocos2d::Scene* createScene(int difficulty);
     static FightScene* create(int difficulty);
+
+    // 回放场景创建入口
+    static FightScene* createReplayScene(const ReplayData& data);
+
     virtual bool initWithDifficulty(int difficulty);
+
+    // 回放初始化
+    virtual bool initForReplay(const ReplayData& data);
+
     virtual bool init() override;
 
     // 每帧更新逻辑 (加农炮攻击核心)
@@ -51,6 +73,12 @@ private:
     // 地图网格标记：true表示被占用，false表示空闲
     bool mapGrid[30][16];
     const int TILE_SIZE = 64; // 格子像素大小
+
+    // 回放控制变量 
+    bool _isReplayMode = false;
+    ReplayData _currentRecord;    // 录制用
+    ReplayData _replaySource;     // 回放用
+    int _replayActionIndex = 0;   // 播放进度
 
     // 生成关卡核心逻辑
     void generateLevel();
@@ -89,12 +117,15 @@ private:
     // 点击地图放兵
     void onMapClick(cocos2d::Vec2 pos);
 
+    // 执行放兵逻辑 (与点击分离，供回放调用)
+    void executeDeploySoldier(int soldierType, cocos2d::Vec2 pos);
+
     bool isValidGrid(int x, int y);
     bool isGridBlocked(int x, int y);
 
-    float _timeLeft = 120.0f;             // 剩余时间 (秒)
+    float _timeLeft = 120.0f; // 剩余时间
     cocos2d::Label* _timeLabel = nullptr; // 倒计时显示 Label
-    bool _isGameOver = false;             // 游戏结束标志位
+    bool _isGameOver = false; // 游戏结束标记
 
     // 检查游戏胜负状态
     void checkGameStatus();
