@@ -19,7 +19,15 @@ bool MilitaryCamp::init()
 
     return true;
 }
+std::string MilitaryCamp::getNextLevelTextureName()
+{
+    int nextLv = level + 1;
 
+    if (nextLv == 2) return "MilitaryCamp2.png";
+    if (nextLv == 3) return "MilitaryCamp3.png";
+
+    return "";
+}
 void MilitaryCamp::upgrade()
 {
     level++;

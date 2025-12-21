@@ -8,6 +8,7 @@ class TownHall : public Building
 public:
     virtual bool init() override;
     CREATE_FUNC(TownHall);
+    virtual std::string getNextLevelTextureName() override;
     virtual void upgrade() override;
 };
 

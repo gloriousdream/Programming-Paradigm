@@ -19,7 +19,16 @@ bool TownHall::init()
 
     return true;
 }
+std::string TownHall::getNextLevelTextureName()
+{
+    // 注意：当前 level 是 1，下一级就是 2
+    int nextLv = level + 1;
 
+    if (nextLv == 2) return "TownHall2.png";
+    if (nextLv == 3) return "TownHall3.png";
+
+    return ""; // 满级了或没有图
+}
 void TownHall::upgrade()
 {
     level++;

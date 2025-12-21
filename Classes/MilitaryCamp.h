@@ -8,6 +8,7 @@ class MilitaryCamp : public Building
 public:
     virtual bool init() override;
     CREATE_FUNC(MilitaryCamp);
+    virtual std::string getNextLevelTextureName() override;
     virtual void upgrade() override;
 };
 

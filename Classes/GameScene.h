@@ -21,7 +21,7 @@ public:
     static void addGlobalResources(int addGold, int addHoly);
     void showTrainMenu(cocos2d::Sprite* building);
     void showTrainAmountMenu(int soldierType);
-
+    void showSkipButton(cocos2d::Sprite* building);
     // 获取全局士兵数量
     static int getGlobalSoldierCount(int type);
 
@@ -35,7 +35,7 @@ public:
     void spawnHomeSoldier(int type);
     // 辅助：根据名字创建建筑
     cocos2d::Sprite* createBuildingByName(std::string name, int level);
-
+    static int gems; // 宝石数量
 private:
     bool placeModebuild = false;
     bool placeModesoldier = false;
@@ -44,10 +44,10 @@ private:
     static int holyWater;
     // 当前显示升级菜单的建筑
     cocos2d::Sprite* currentBuildingMenu = nullptr;
-
+    
     // 用于记录当前打开的弹窗（升级菜单、造兵菜单等）
     cocos2d::Node* currentPopup = nullptr;
-
+    cocos2d::Label* gemLabel;
     cocos2d::Sprite* ghostSprite = nullptr;
 
     // 关闭当前弹窗的辅助函数

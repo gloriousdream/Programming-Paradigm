@@ -11,9 +11,12 @@
 #include "ElixirTank.h"   // 圣水罐
 #include "Cannon.h"       // 加农炮 
 #include "ArrowTower.h"   // 箭塔 
+#include "CoinCollection.h"   // 
+#include "WaterCollection.h"  // 
 USING_NS_CC;
 int GameScene::gold = 1000;       // 初始金币
 int GameScene::holyWater = 500;   // 初始圣水
+int GameScene::gems = 10;
 // 辅助函数：在左侧区域随机位置生成一个闲置士兵
 void GameScene::spawnHomeSoldier(int type)
 {
@@ -60,6 +63,78 @@ void GameScene::spawnHomeSoldier(int type)
     this->saveData();
     Scene::onExit();
 }
+
+void GameScene::showSkipButton(cocos2d::Sprite* building)
+{
+    // 1. 清理旧菜单
+    if (auto existingMenu = this->getChildByName("UPGRADE_MENU"))
+        existingMenu->removeFromParent();
+    this->removeChildByTag(999);
+
+    Building* b = dynamic_cast<Building*>(building);
+    if (!b) return;
+
+    // 2. 创建容器 Node
+    Vec2 pos = building->getPosition() + Vec2(0, 100);
+    auto upgradeNode = Node::create();
+    upgradeNode->setName("UPGRADE_MENU");
+    upgradeNode->setTag(999);
+    upgradeNode->setPosition(pos);
+    this->addChild(upgradeNode, 999);
+
+    // 3. 显示顶部状态文字
+    auto statusLabel = Label::createWithTTF("Upgrading...", "fonts/Marker Felt.ttf", 24);
+    statusLabel->setColor(Color3B::GREEN);
+    statusLabel->setPosition(Vec2(0, 50));
+    upgradeNode->addChild(statusLabel);
+
+    // 4. 创建加速按钮
+    auto btn = MenuItemImage::create(
+        "accelerate.png", "accelerate.png",
+        [=](Ref*)
+        {
+            // 【关键修改】检查宝石是否足够
+            if (gems >= 1)
+            {
+                // 1. 扣除宝石
+                gems--;
+
+                // 2. 刷新右上角的 UI 显示
+                if (gemLabel)
+                {
+                    gemLabel->setString(std::to_string(gems));
+                }
+
+                // 3. 执行原有跳过逻辑
+                CCLOG("Skip Button Clicked! Spent 1 Gem.");
+                b->skipUpgradeTimer();
+
+                // 4. 保存数据
+                this->saveData();
+
+                // 5. 关闭菜单
+                upgradeNode->removeFromParent();
+                currentBuildingMenu = nullptr;
+            }
+            else
+            {
+                // 宝石不足的处理
+                CCLOG("Not enough gems!");
+
+                // 可选：给个简单的提示动画
+                statusLabel->setString("Need Gems!");
+                statusLabel->setColor(Color3B::RED);
+            }
+        }
+    );
+
+    auto menu = Menu::create(btn, nullptr);
+    menu->setPosition(Vec2::ZERO);
+    upgradeNode->addChild(menu);
+
+    // 更新当前选中
+    currentBuildingMenu = building;
+}
 void GameScene::saveData()
 {
     auto userDefault = UserDefault::getInstance();
@@ -68,53 +143,56 @@ void GameScene::saveData()
     userDefault->setIntegerForKey("PlayerGold", gold);
     userDefault->setIntegerForKey("PlayerHolyWater", holyWater);
 
+    // 保存宝石数量
+    userDefault->setIntegerForKey("PlayerGems", gems);
+
     // 2. 保存士兵数量
-    // 假设你有 1, 2, 3 种类型的士兵
-    for (int i = 1; i <= 3; i++)
+    for (int i = 1; i <= 4; i++)
     {
         std::string key = "Soldier_" + std::to_string(i);
-        userDefault->setIntegerForKey(key.c_str(), _homeSoldiers[i]);
+        userDefault->setIntegerForKey(key.c_str(), getGlobalSoldierCount(i));
     }
 
     // 3. 保存建筑
     std::string buildData = "";
-
-    // 遍历场景的所有子节点
-    for (auto node : this->getChildren())
+    for (auto child : _children)
     {
-        // 判断这个节点是不是 Building 类
-        Building* build = dynamic_cast<Building*>(node);
-        if (build)
+        Building* b = dynamic_cast<Building*>(child);
+        if (b)
         {
-            std::string type = "";
+            std::string typeStr = "";
 
-            //即使使用了多态，为了保存名字，我们需要手动判断类型
-            if (dynamic_cast<TownHall*>(build)) type = "TownHall";
-            else if (dynamic_cast<GoldStage*>(build)) type = "GoldStage";
-            else if (dynamic_cast<ElixirTank*>(build)) type = "ElixirTank";
-            else if (dynamic_cast<Cannon*>(build)) type = "Cannon";
-            else if (dynamic_cast<MilitaryCamp*>(build)) type = "MilitaryCamp";
-            else if (dynamic_cast<ArrowTower*>(build)) type = "ArrowTower";
+            // 判断建筑类型，必须涵盖所有建筑！
+            if (dynamic_cast<TownHall*>(b)) typeStr = "TownHall";
+            else if (dynamic_cast<MilitaryCamp*>(b)) typeStr = "MilitaryCamp";
+            else if (dynamic_cast<ArrowTower*>(b)) typeStr = "ArrowTower";
+            else if (dynamic_cast<Cannon*>(b)) typeStr = "Cannon";
+            else if (dynamic_cast<GoldStage*>(b)) typeStr = "GoldStage";
+            else if (dynamic_cast<ElixirTank*>(b)) typeStr = "ElixirTank";
 
-            if (type != "")
+            // 修复 CoinCollection 和 WaterCollection 无法保存的问题
+            else if (dynamic_cast<CoinCollection*>(b)) typeStr = "CoinCollection";
+            else if (dynamic_cast<WaterCollection*>(b)) typeStr = "WaterCollection";
+
+            // 如果找到了对应的类型字符串，就拼接到存档里
+            if (!typeStr.empty())
             {
-                // 拼接字符串: Type,Level,X,Y;
-                buildData += type + "," +
-                    std::to_string(build->getLevel()) + "," +
-                    std::to_string((int)build->getPositionX()) + "," +
-                    std::to_string((int)build->getPositionY()) + ";";
+                int lv = b->getLevel();
+                int x = (int)b->getPositionX();
+                int y = (int)b->getPositionY();
+
+                std::string segment = typeStr + "," + std::to_string(lv) + "," +
+                    std::to_string(x) + "," + std::to_string(y) + ";";
+                buildData += segment;
             }
         }
     }
 
     userDefault->setStringForKey("BuildingData", buildData);
-
-    // 标记存档已存在
     userDefault->setBoolForKey("HasSaveData", true);
 
-    // 强制写入磁盘
-    userDefault->flush();
-    CCLOG("Game Saved!");
+    userDefault->flush(); // 强制写入文件
+    CCLOG("Game Saved! Gems: %d", gems);
 }
 Sprite* GameScene::createBuildingByName(std::string name, int level)
 {
@@ -152,36 +230,34 @@ void GameScene::loadData()
         return;
     }
 
-    // 2. 恢复金币和圣水
+    // 2. 恢复资源
     gold = userDefault->getIntegerForKey("PlayerGold", 1000);
     holyWater = userDefault->getIntegerForKey("PlayerHolyWater", 500);
+    gems = userDefault->getIntegerForKey("PlayerGems", 10);
 
-    // 3. 恢复士兵并计算人口
-    int totalPopulation = 0; // 用于统计总人口
-
-    for (int i = 1; i <= 3; i++)
+    // 3. 恢复士兵
+    int totalPopulation = 0;
+    for (int i = 1; i <= 4; i++)
     {
         std::string key = "Soldier_" + std::to_string(i);
         int count = userDefault->getIntegerForKey(key.c_str(), 0);
 
-        // 恢复后台数据
         addGlobalSoldierCount(i, count);
-
-        // 【新增】累加人口
         totalPopulation += count;
 
-        // 恢复画面：生成士兵
         for (int k = 0; k < count; k++)
         {
             this->spawnHomeSoldier(i);
         }
     }
 
-    // 手动更新场景的人口变量，并刷新 UI
     this->population = totalPopulation;
-
-    // 强制刷新一次界面（确保 updateResourceDisplay 里有更新 populationLabel 的代码）
     this->updateResourceDisplay();
+
+    if (gemLabel)
+    {
+        gemLabel->setString(std::to_string(gems));
+    }
 
     // 4. 恢复建筑
     std::string buildData = userDefault->getStringForKey("BuildingData", "");
@@ -194,6 +270,7 @@ void GameScene::loadData()
             if (segment.empty()) continue;
             std::stringstream ss2(segment);
             std::string typeStr, levelStr, xStr, yStr;
+
             if (!std::getline(ss2, typeStr, ',')) continue;
             if (!std::getline(ss2, levelStr, ',')) continue;
             if (!std::getline(ss2, xStr, ',')) continue;
@@ -204,19 +281,36 @@ void GameScene::loadData()
             int y = std::atoi(yStr.c_str());
             if (level < 1) level = 1;
 
+            // 创建建筑
             Sprite* b = createBuildingByName(typeStr, level);
             if (b)
             {
                 b->setPosition(Vec2(x, y));
                 this->addChild(b, 5);
-               
+
+                // 手动把名字转换成 ID，以便占位
+                // 对应 BuildingManager 里的 createBuilding ID
+                int typeID = 0;
+                if (typeStr == "MilitaryCamp") typeID = 1;
+                else if (typeStr == "WaterCollection") typeID = 2;
+                else if (typeStr == "ArrowTower") typeID = 3;
+                else if (typeStr == "TownHall") typeID = 4;
+                else if (typeStr == "CoinCollection") typeID = 5;
+                else if (typeStr == "Cannon") typeID = 6;
+                else if (typeStr == "GoldStage") typeID = 7;
+                else if (typeStr == "ElixirTank") typeID = 8;
+
+                // 只有当 ID 有效时才去占位
+                if (typeID > 0)
+                {
+                    BuildingManager::getInstance()->occupyGrid(Vec2(x, y), typeID);
+                }
             }
         }
     }
 
-    CCLOG("Game Loaded with Population: %d", this->population);
+    CCLOG("Game Loaded! Gems: %d", gems);
 }
-// 初始化
 std::map<int, int> GameScene::_globalSoldiers;
 std::map<int, int> GameScene::_homeSoldiers;
 
@@ -363,6 +457,14 @@ bool GameScene::init()
     populationLabel->setPosition(popSprite->getPosition() + Vec2(20, 0));
     this->addChild(populationLabel, 10);
 
+    auto gemSprite = Sprite::create("gem.png"); // 
+    gemSprite->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 170)); // 放在人口下面 (-130 再减 40)
+    this->addChild(gemSprite, 10);
+
+    gemLabel = Label::createWithTTF(std::to_string(gems), "fonts/Marker Felt.ttf", 24);
+    gemLabel->setAnchorPoint(Vec2(0, 0.5f));
+    gemLabel->setPosition(gemSprite->getPosition() + Vec2(20, 0));
+    this->addChild(gemLabel, 10);
     // 地图点击事件 
     auto touchListener = EventListenerTouchOneByOne::create();
     touchListener->onTouchBegan = [=](Touch* t, Event* e) {
@@ -426,9 +528,9 @@ bool GameScene::init()
         });
     _eventDispatcher->addEventListenerWithSceneGraphPriority(collectCoinListener, this);
 
-    /*updateResourceDisplay();
+    updateResourceDisplay();
     this->loadData();
-    return true;*/
+    return true;
 }
 
 void GameScene::updateResourceDisplay()
@@ -495,8 +597,8 @@ void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
                 {
                     this->gold -= goldCost;
                     this->holyWater -= holyCost;
-                    targetBuilding->upgrade();
                     this->updateResourceDisplay();
+                    targetBuilding->startUpgradeTimer(90.0f);
                     CCLOG("Upgrade Successful!");
                 }
                 else
@@ -572,14 +674,28 @@ void GameScene::onBuildingClicked(cocos2d::Sprite* building)
     if (isSameBuilding) {
         return;
     }
-
+    Building* target = dynamic_cast<Building*>(building);
+    if (!target) return;
+    int tag = target->getTag();
+    bool isMaxLv = (target->getLevel() >= 3);
     // 如果是新建筑，则显示对应的菜单
     MilitaryCamp* camp = dynamic_cast<MilitaryCamp*>(building);
-    if (camp) {
-        showMilitaryOptions(building);
+    if (tag)
+    {
+        // 兵营特殊处理
+        if (camp)
+        {
+            showMilitaryOptions(building);
+        }
+        else
+        {
+            showUpgradeButton(building); // 走原来的老路
+        }
     }
-    else {
-        showUpgradeButton(building);
+    else if (!tag)
+    {
+        CCLOG("正在升级中，显示跳过按钮");
+        showSkipButton(building); // 走新的路
     }
 }
 
@@ -716,7 +832,7 @@ void GameScene::showUpgradeButton(Sprite* building)
                     gold -= reqG;
                     holyWater -= reqW;
                     updateResourceDisplay();
-                    b->upgrade();
+                    b->startUpgradeTimer(90.0f);
                     CCLOG("升级成功！");
                 }
                 else {

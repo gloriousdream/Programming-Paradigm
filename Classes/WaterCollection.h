@@ -9,6 +9,7 @@ public:
     virtual bool init() override;
     CREATE_FUNC(WaterCollection);
     virtual void upgrade() override;
+    virtual std::string getNextLevelTextureName() override;
 
     // 设置为敌人状态（停止生产）
     void setEnemyState(bool isEnemy);

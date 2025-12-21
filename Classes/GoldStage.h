@@ -11,6 +11,7 @@ public:
     CREATE_FUNC(GoldStage);
     virtual void takeDamage(int damage) override;
     virtual void upgrade() override;
+    virtual std::string getNextLevelTextureName() override;
     // 根据当前金币和最大容量更新图片
     void updateVisuals(int currentGold, int maxGold);
 

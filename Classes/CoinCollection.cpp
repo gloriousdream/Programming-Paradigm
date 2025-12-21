@@ -1,7 +1,15 @@
 #include "CoinCollection.h"
 
 USING_NS_CC;
+std::string CoinCollection::getNextLevelTextureName()
+{
+    int nextLv = level + 1;
 
+    if (nextLv == 2) return "CoinCollection.png";
+    if (nextLv == 3) return "CoinCollection.png";
+
+    return "";
+}
 bool CoinCollection::init()
 {
     if (!Building::init()) return false;

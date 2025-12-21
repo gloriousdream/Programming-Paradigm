@@ -1,7 +1,15 @@
 #include "GoldStage.h"
 
 USING_NS_CC;
+std::string GoldStage::getNextLevelTextureName()
+{
+    int nextLv = level + 1;
 
+    if (nextLv == 2) return "gold_stage_01.png"; // 推测命名
+    if (nextLv == 3) return "gold_stage_01.png"; // 推测命名
+
+    return "";
+}
 bool GoldStage::init()
 {
     if (!Building::init()) return false;

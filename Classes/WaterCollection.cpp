@@ -1,7 +1,15 @@
 #include "WaterCollection.h"
 
 USING_NS_CC;
+std::string WaterCollection::getNextLevelTextureName()
+{
+    int nextLv = level + 1;
 
+    if (nextLv == 2) return "WaterCollection.png"; // 请确保你有这张图
+    if (nextLv == 3) return "WaterCollection.png"; // 请确保你有这张图
+
+    return "";
+}
 bool WaterCollection::init()
 {
     // 1. 初始化基类

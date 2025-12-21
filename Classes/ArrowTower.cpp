@@ -21,7 +21,15 @@ bool ArrowTower::init()
 
     return true;
 }
+std::string ArrowTower::getNextLevelTextureName()
+{
+    int nextLv = level + 1;
 
+    if (nextLv == 2) return "ArrowTower2.png";
+    if (nextLv == 3) return "ArrowTower3.png";
+
+    return "";
+}
 void ArrowTower::upgrade()
 {
     level++;
@@ -36,5 +44,4 @@ void ArrowTower::upgrade()
     // Ã¿´ÎÉý¼¶»Ö¸´ÂúÑª
     currentHP = maxHP;
     updateHPBar();
-
 }

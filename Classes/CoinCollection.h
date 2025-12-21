@@ -9,6 +9,7 @@ public:
     virtual bool init() override;
     CREATE_FUNC(CoinCollection);
     virtual void upgrade() override;
+    virtual std::string getNextLevelTextureName() override;
 
     void setEnemyState(bool isEnemy);
 

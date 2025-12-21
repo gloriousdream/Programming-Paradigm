@@ -35,6 +35,88 @@ void Building::addTouchListener()
     Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listener, this);
 }
 
+void Building::updateUpgradeTimer(float dt)
+{
+    // 1. 扣除时间
+    _remainingTime -= dt; // dt 通常是 1.0
+
+    // 2. 检查是否结束
+    if (_remainingTime <= 0)
+    {
+        // 时间到了！
+        _remainingTime = 0;
+        this->onUpgradeFinished(0); // 直接调用完成函数
+    }
+    else
+    {
+        // 3. 没结束，更新文字
+        if (_timerLabel)
+        {
+            _timerLabel->setString(std::to_string((int)_remainingTime) + "s");
+        }
+    }
+}
+void Building::startUpgradeTimer(float duration)
+{
+    // 1. 标记状态
+    this->setTag(0);
+
+    // 2. 视觉预览 (变身 + 半透明)
+    std::string nextImg = this->getNextLevelTextureName();
+    if (!nextImg.empty())
+    {
+        this->setTexture(nextImg);
+    }
+    this->setOpacity(128);
+
+    // 3. 初始化倒计时文字
+    if (!_timerLabel)
+    {
+        // 如果还没有标签，就创建一个
+        _timerLabel = Label::createWithTTF("", "fonts/Marker Felt.ttf", 24);
+        _timerLabel->setColor(Color3B::WHITE);
+        _timerLabel->enableOutline(Color4B::BLACK, 2); // 加个黑边，防止看不清
+        // 放在建筑中心
+        _timerLabel->setPosition(Vec2(getContentSize().width / 2, getContentSize().height / 2));
+        this->addChild(_timerLabel, 100); // 层级设高点
+    }
+
+    // 4. 设置初始时间并显示
+    _remainingTime = duration;
+    _timerLabel->setString(std::to_string((int)_remainingTime) + "s");
+    _timerLabel->setVisible(true);
+
+    // 5. 改为每 1.0 秒执行一次 updateUpgradeTime
+    this->schedule(CC_SCHEDULE_SELECTOR(Building::updateUpgradeTimer), 1.0f);
+
+    CCLOG("Building started upgrading... Duration: %f", duration);
+}
+void Building::onUpgradeFinished(float dt)
+{
+    // 1. 真正的升级数据
+    this->upgrade();
+
+    // 2. 恢复视觉
+    this->setOpacity(255);
+    this->setTag(1);
+
+    // 3. 停止倒计时定时器
+    this->unschedule(CC_SCHEDULE_SELECTOR(Building::updateUpgradeTimer));
+
+    // 4.隐藏倒计时文字
+    if (_timerLabel)
+    {
+        _timerLabel->setVisible(false);
+    }
+
+    CCLOG("Upgrade Finished!");
+}
+// 立即完成 (也就是加速功能)
+void Building::skipUpgradeTimer()
+{
+    // 直接调用完成函数
+    onUpgradeFinished(0);
+}
 void Building::takeDamage(int dmg)
 {
     // 如果已经死了，就不要再鞭尸了，直接返回

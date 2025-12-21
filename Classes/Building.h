@@ -15,7 +15,14 @@ public:
     bool isDead() const { return _isDead; } // 获取死亡状态
     virtual void takeDamage(int dmg);   // 受伤
     void updateHPBar();         // 更新血条显示
+    // 开始升级倒计时 (duration: 需要几秒)
+    void startUpgradeTimer(float duration);
 
+    // 跳过等待，立即完成
+    void skipUpgradeTimer();
+
+    // 为了提前显示下一级照片，子类必须告诉我下一级的图片名叫什么
+    virtual std::string getNextLevelTextureName() { return ""; };
     // 建造 / 升级 消耗（子类在 init 中赋值）
     int buildCostGold = 0;
     int buildCostHoly = 0;
@@ -26,9 +33,17 @@ protected:
     int level = 1;
     int maxHP = 100;
     int currentHP = 100;
-
+    // 倒计时回调
+    void onUpgradeFinished(float dt);
     bool _isDead = false; // 死亡标记
+    // 每秒更新倒计时的函数
+    void updateUpgradeTimer(float dt);
 
+    // 倒计时文字标签
+    cocos2d::Label* _timerLabel = nullptr;
+
+    // 剩余时间
+    float _remainingTime = 0.0f;
     cocos2d::DrawNode* hpBar = nullptr;
 
     void addTouchListener(); // 点击事件，发送 "BUILDING_CLICKED"

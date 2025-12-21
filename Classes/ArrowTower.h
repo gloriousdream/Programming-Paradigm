@@ -7,6 +7,8 @@ class ArrowTower : public Building
 {
 public:
     virtual bool init() override;
+    virtual std::string getNextLevelTextureName() override;
+
     CREATE_FUNC(ArrowTower);
     virtual void upgrade() override;
 };

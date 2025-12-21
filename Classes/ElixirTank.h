@@ -9,6 +9,7 @@ class ElixirTank : public Building
 public:
     virtual bool init() override;
     CREATE_FUNC(ElixirTank);
+    virtual std::string getNextLevelTextureName() override;
 
     virtual void upgrade() override;
     virtual void takeDamage(int damage) override;
