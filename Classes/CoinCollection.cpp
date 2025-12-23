@@ -5,8 +5,8 @@ std::string CoinCollection::getNextLevelTextureName()
 {
     int nextLv = level + 1;
 
-    if (nextLv == 2) return "CoinCollection.png";
-    if (nextLv == 3) return "CoinCollection.png";
+    if (nextLv == 2) return "CoinCollection2.png";
+    if (nextLv == 3) return "CoinCollection3.png";
 
     return "";
 }

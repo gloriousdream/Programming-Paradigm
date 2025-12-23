@@ -1,6 +1,6 @@
 #ifndef __FIGHT_SCENE_H__
 #define __FIGHT_SCENE_H__
-
+#include "Boom.h"
 #include "cocos2d.h"
 #include "Building.h"
 #include "Cannon.h"
@@ -64,7 +64,7 @@ public:
 
 private:
     int _difficulty;
-
+    cocos2d::Vector<Boom*> _bombs;
     // 存储地方建筑
     cocos2d::Vector<Building*> _enemyBuildings;
     // 存储我方士兵

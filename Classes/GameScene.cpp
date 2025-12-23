@@ -13,6 +13,7 @@
 #include "ArrowTower.h"   // 箭塔 
 #include "CoinCollection.h"   // 
 #include "WaterCollection.h"  // 
+#include "Boom.h"
 USING_NS_CC;
 int GameScene::gold = 1000;       // 初始金币
 int GameScene::holyWater = 500;   // 初始圣水
@@ -169,11 +170,10 @@ void GameScene::saveData()
             else if (dynamic_cast<Cannon*>(b)) typeStr = "Cannon";
             else if (dynamic_cast<GoldStage*>(b)) typeStr = "GoldStage";
             else if (dynamic_cast<ElixirTank*>(b)) typeStr = "ElixirTank";
-
             // 修复 CoinCollection 和 WaterCollection 无法保存的问题
             else if (dynamic_cast<CoinCollection*>(b)) typeStr = "CoinCollection";
             else if (dynamic_cast<WaterCollection*>(b)) typeStr = "WaterCollection";
-
+            else if (dynamic_cast<Boom*>(b)) typeStr = "Boom";
             // 如果找到了对应的类型字符串，就拼接到存档里
             if (!typeStr.empty())
             {
@@ -207,7 +207,7 @@ Sprite* GameScene::createBuildingByName(std::string name, int level)
     else if (name == "ArrowTower") building = ArrowTower::create();
     else if (name == "CoinCollection") building = CoinCollection::create();
     else if (name == "WaterCollection") building = WaterCollection::create();
-
+    else if (name == "Boom")  building= Boom::create();
     if (building)
     {
         // 简单循环升级
@@ -299,7 +299,7 @@ void GameScene::loadData()
                 else if (typeStr == "Cannon") typeID = 6;
                 else if (typeStr == "GoldStage") typeID = 7;
                 else if (typeStr == "ElixirTank") typeID = 8;
-
+                else if (typeStr == "Boom") typeID = 9;
                 // 只有当 ID 有效时才去占位
                 if (typeID > 0)
                 {
@@ -389,6 +389,7 @@ static std::string getBuildingTexturePath(int type)
         case 6: return "cannon_stand.png";
         case 7: return "gold_stage_05.png";
         case 8: return "elixir_tank_05.png";
+        case 9: return "boom1.png";
         default: return "CloseNormal.png";
     }
 }

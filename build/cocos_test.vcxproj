@@ -832,6 +832,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Classes\Boom.h" />
     <ClInclude Include="D:\cocos_game\Classes\AppDelegate.h" />
     <ClInclude Include="D:\cocos_game\Classes\ArrowTower.h" />
     <ClInclude Include="D:\cocos_game\Classes\Building.h" />
@@ -856,6 +857,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="D:\cocos_game\Classes\ElixirTank.h" />
     <ClInclude Include="D:\cocos_game\proj.win32\main.h" />
     <ClInclude Include="D:\cocos_game\proj.win32\resource.h" />
+    <ClCompile Include="..\Classes\Boom.cpp" />
     <ClCompile Include="D:\cocos_game\Classes\AppDelegate.cpp" />
     <ClCompile Include="D:\cocos_game\Classes\ArrowTower.cpp" />
     <ClCompile Include="D:\cocos_game\Classes\Building.cpp" />

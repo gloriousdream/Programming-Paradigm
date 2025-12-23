@@ -140,13 +140,17 @@ bool Cannon::fireAt(Soldier* target)
     if (_cooldownTimer > 0) return false;
     if (!target || target->getHP() <= 0) return false;
 
-    // 1. 转向
+    // 给士兵加锁！防止子弹飞的过程中士兵被炸弹炸死导致内存回收
+    target->retain();
+
+    // 1. 转向 (完全保持你的逻辑)
     updateBarrelDirection(target->getPosition());
 
     _cooldownTimer = attackRate;
 
-    // 2. 后坐力动画
-    if (_barrel) {
+    // 2. 后坐力动画 (完全保持你的逻辑)
+    if (_barrel)
+    {
         Vec2 dir = (target->getPosition() - this->getPosition()).getNormalized();
         // 初始位置参考 init 里的设置 (注意保持一致)
         Vec2 originalPos = Vec2(getContentSize().width / 2, getContentSize().height / 2 + 10);
@@ -159,9 +163,10 @@ bool Cannon::fireAt(Soldier* target)
         ));
     }
 
-    // 3. 发射炮弹 (原样逻辑)
+    // 3. 发射炮弹 (完全保持你的逻辑)
     auto ball = Sprite::create("CannonBall.png");
-    if (!ball) {
+    if (!ball)
+    {
         // 兜底：画个黑球
         ball = Sprite::create();
         auto draw = DrawNode::create();
@@ -170,26 +175,40 @@ bool Cannon::fireAt(Soldier* target)
     }
 
     ball->setPosition(this->getPosition());
-    if (this->getParent()) {
+    if (this->getParent())
+    {
         this->getParent()->addChild(ball, 100);
     }
 
     float dist = this->getPosition().distance(target->getPosition());
     float duration = dist / 600.0f;
 
+    // 提前取出伤害值。
+    // 不要捕获 'this'，因为如果加农炮也被摧毁了，this->attackDamage 也会崩。
+    int damage = this->attackDamage;
+
     auto move = MoveTo::create(duration, target->getPosition());
-    auto hitCallback = CallFunc::create([target, ball, this]() {
-        if (target && target->getParent()) {
-            target->takeDamage(this->attackDamage);
-        }
-        ball->removeFromParent();
+
+    auto hitCallback = CallFunc::create([target, ball, damage]()
+        {
+
+            // 因为 retain 过了，target 指针现在是绝对安全的，不会崩
+            // 只需要判断逻辑上是否还活着 (HP > 0) 且在场景中
+            if (target && target->getHP() > 0 && target->getParent())
+            {
+                target->takeDamage(damage);
+            }
+
+            ball->removeFromParent();
+
+            // 否则内存永远泄露
+            target->release();
         });
 
     ball->runAction(Sequence::create(move, hitCallback, nullptr));
 
     return true;
 }
-
 void Cannon::upgrade()
 {
     if (level >= 3) return;

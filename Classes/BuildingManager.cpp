@@ -1,5 +1,5 @@
 ﻿#include "BuildingManager.h"
-
+#include "Boom.h"
 USING_NS_CC;
 
 static BuildingManager* _instance = nullptr;
@@ -26,6 +26,7 @@ int BuildingManager::getBuildingGridSize(int type)
     switch (type)
     {
         case 4: return 3; // TownHall 3x3
+        case 9:return 1;
         default: return 2; // 其他建筑 2x2
     }
 }
@@ -81,7 +82,7 @@ void BuildingManager::initReservedArea()
     if (reservedRow < 0) reservedRow = 0;
     if (reservedRow > 22) reservedRow = 22; // 24 - 2
 
-    // --- [关键] 标记格子为占用 ---
+    // -- 标记格子为占用 ---
     // 2x2 区域
     grid[reservedCol][reservedRow] = true;         // 左下
     grid[reservedCol + 1][reservedRow] = true;     // 右下
@@ -134,6 +135,7 @@ Building* BuildingManager::createBuilding(int type, Vec2 pos)
         case 6: building = Cannon::create(); break;
         case 7: building = GoldStage::create(); break;
         case 8: building = ElixirTank::create(); break;
+        case 9: building = Boom::create(); break;
         default: return nullptr;
     }
 

@@ -42,7 +42,8 @@ bool BuildMenu::init()
         {"CoinCollection.png", 5, 20, 80},
         {"cannon_stand.png", 6, 200, 0},
         { "gold_stage_05.png", 7, 0, 0 },
-        { "elixir_tank_05.png", 8, 0, 0 }
+        { "elixir_tank_05.png", 8, 0, 0 },
+        { "boom1.png", 9, 150, 0 }
     };
 
     Vector<MenuItem*> menuItems;

@@ -741,8 +741,86 @@ void FightScene::update(float dt)
             _enemyBuildings.erase(i);
         }
     }
+    for (int i = _bombs.size() - 1; i >= 0; i--)
+    {
+        auto boom = _bombs.at(i);
 
-    // 3. 游戏逻辑 (防御塔攻击)
+        // 阶段 A: 如果已经被触发了，就进行倒计时
+        if (boom->isTriggered)
+        {
+            // 1. 倒计时
+            boom->delayTimer -= dt;
+
+          
+
+            // 3. 时间到了
+            if (boom->delayTimer <= 0)
+            {
+                CCLOG("Boom exploded after delay!");
+
+                // --- 播放特效 ---
+                boom->playExplodeEffect();
+
+                // --- 造成伤害 ---
+                float damageRange = 200.0f;
+                for (auto target : _mySoldiers)
+                {
+                    if (target && target->getHP() > 0)
+                    {
+                        float dist = boom->getPosition().distance(target->getPosition());
+                        if (dist < damageRange)
+                        {
+                            target->takeDamage(boom->getDamage());
+                        }
+                    }
+                }
+
+                // --- 移除炸弹 ---
+                _bombs.erase(i);
+            }
+
+            // 如果正在倒计时，就跳过下面的“碰撞检测”，处理下一个炸弹
+            continue;
+        }
+
+        
+        // 阶段 B: 如果还没触发，检测有没有人踩到
+        bool collisionHappened = false;
+        float boomX = boom->getPositionX();
+        float boomY = boom->getPositionY();
+
+        for (auto soldier : _mySoldiers)
+        {
+            if (soldier && soldier->getHP() > 0)
+            {
+                float solX = soldier->getPositionX();
+                float solY = soldier->getPositionY();
+
+                // 矩形检测 (128x128范围)
+                if (std::abs(boomX - solX) <= 128.0f &&
+                    std::abs(boomY - solY) <= 128.0f)
+                {
+                    collisionHappened = true;
+                    break;
+                }
+            }
+        }
+
+        // 如果有人踩到了
+        if (collisionHappened)
+        {
+            CCLOG("Bomb Triggered! Waiting 0.5s...");
+
+            // 1. 标记为已触发，开始倒计时
+            boom->isTriggered = true;
+            boom->delayTimer = 0.5f; // 重置倒计时为 0.5 秒
+
+           
+            // 把透明度设回 255，或者你可以换一张“红色的雷”的图片
+            boom->setOpacity(255);
+            boom->setVisible(true);
+        }
+    }
     for (auto building : _enemyBuildings)
     {
         Cannon* cannon = dynamic_cast<Cannon*>(building);
@@ -835,18 +913,21 @@ void FightScene::generateLevel()
     // 定义要生成的资源建筑数量
     int goldStageCount = 0;
     int elixirTankCount = 0;
-
-    if (_difficulty == 1) {
-        targetLevel = 1; arrowTowerCount = 1; cannonCount = 0;
-        goldStageCount = 1; elixirTankCount = 1; // 简单：各1个
+    int boomcount = 0;
+    if (_difficulty == 1)
+    {
+        targetLevel = 1; arrowTowerCount = 0; cannonCount = 1;
+        goldStageCount = 1; elixirTankCount = 1; boomcount = 2; // 简单：各1个
     }
-    else if (_difficulty == 2) {
-        targetLevel = 2; arrowTowerCount = 1; cannonCount = 1;
-        goldStageCount = 2; elixirTankCount = 2; // 中等：各2个
+    else if (_difficulty == 2)
+    {
+        targetLevel = 2; arrowTowerCount = 0; cannonCount = 2;
+        goldStageCount = 1; elixirTankCount = 1; boomcount = 4; // 中等：各2个
     }
-    else if (_difficulty == 3) {
-        targetLevel = 3; arrowTowerCount = 2; cannonCount = 1;
-        goldStageCount = 3; elixirTankCount = 3; // 困难：各3个
+    else if (_difficulty == 3)
+    {
+        targetLevel = 3; arrowTowerCount = 0; cannonCount = 3;
+        goldStageCount = 1; elixirTankCount = 1; boomcount = 6; // 困难：各3个
     }
 
     // 第一步：放置大本营 (TownHall 3x3) -- 保持你的原逻辑不动
@@ -877,27 +958,32 @@ void FightScene::generateLevel()
     pendingBuildings.push_back(coin);
 
     // 2.2 防御塔和加农炮
-    for (int i = 0; i < arrowTowerCount; i++) {
+    for (int i = 0; i < arrowTowerCount; i++)
+    {
         pendingBuildings.push_back(ArrowTower::create());
     }
-    for (int i = 0; i < cannonCount; i++) {
+    for (int i = 0; i < cannonCount; i++)
+    {
         pendingBuildings.push_back(Cannon::create());
     }
 
     // 2.3 金库和水罐
-    for (int i = 0; i < goldStageCount; i++) {
+    for (int i = 0; i < goldStageCount; i++)
+    {
         auto gs = GoldStage::create();
         gs->updateVisuals(5000, 5000); // 设为满资源状态
         pendingBuildings.push_back(gs);
     }
-    for (int i = 0; i < elixirTankCount; i++) {
+    for (int i = 0; i < elixirTankCount; i++)
+    {
         auto et = ElixirTank::create();
         et->updateVisuals(5000, 5000); // 设为满资源状态
         pendingBuildings.push_back(et);
     }
 
     // 第三步：生成候选坐标 
-    struct GridPoint {
+    struct GridPoint
+    {
         int x, y;
         float distanceScore;
     };
@@ -906,8 +992,10 @@ void FightScene::generateLevel()
     float centerX = thCol + 1.5f; // 14.5
     float centerY = thRow + 1.5f; // 7.5
 
-    for (int x = 1; x <= 28; x++) {
-        for (int y = 1; y <= 14; y++) {
+    for (int x = 1; x <= 28; x++)
+    {
+        for (int y = 1; y <= 14; y++)
+        {
 
             // 排除掉已经被大本营占用的区域
             if (x >= thCol && x < thCol + 3 && y >= thRow && y < thRow + 3) continue;
@@ -923,8 +1011,9 @@ void FightScene::generateLevel()
     }
 
     // 按距离排序
-    std::sort(validSpots.begin(), validSpots.end(), [](const GridPoint& a, const GridPoint& b) {
-        return a.distanceScore < b.distanceScore;
+    std::sort(validSpots.begin(), validSpots.end(), [](const GridPoint& a, const GridPoint& b)
+        {
+            return a.distanceScore < b.distanceScore;
         });
 
     // 第四步：放置 (循环放置 pendingBuildings 里的所有建筑)
@@ -949,8 +1038,47 @@ void FightScene::generateLevel()
             }
         }
 
-        if (!placed) {
+        if (!placed)
+        {
             CCLOG("Warning: No space for building nearby center!");
+        }
+    }
+    for (int i = 0; i < boomcount; i++)
+    {
+        auto boom = Boom::create();
+        boom->setToFightMode(); // 隐形模式
+
+        bool placed = false;
+        int attempts = 0;
+
+        // 我们限制炸弹生成在 X: 8~20, Y: 3~11 这个核心区域
+        // 这样炸弹会集中在建筑群周围，而不是地图边缘
+        int minX = 8;  int maxX = 20;
+        int minY = 3;  int maxY = 11;
+
+        while (!placed && attempts < 50)
+        {
+            // 在防御圈内随机
+            int tx = minX + std::rand() % (maxX - minX + 1);
+            int ty = minY + std::rand() % (maxY - minY + 1);
+
+            // 检查位置是否空闲 (炸弹占地 1x1)
+            if (isAreaFree(tx, ty, 1, 1))
+            {
+                markArea(tx, ty, 1, 1);
+                boom->setPosition(getPositionForGrid(tx, ty, 1, 1));
+
+                this->addChild(boom, 5);
+                _bombs.pushBack(boom); // 加入独立列表
+
+                placed = true;
+            }
+            attempts++;
+        }
+
+        if (!placed)
+        {
+            CCLOG("Warning: Could not place bomb nearby center!");
         }
     }
 }
