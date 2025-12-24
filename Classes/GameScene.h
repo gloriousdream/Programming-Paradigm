@@ -10,7 +10,6 @@ public:
     virtual bool init();
     CREATE_FUNC(GameScene);
     virtual void onEnter() override;
-
     // 核心循环函数，用于计算昼夜时间
     virtual void update(float dt) override;
 

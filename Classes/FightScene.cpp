@@ -13,6 +13,7 @@
 #include "GoldStage.h"
 #include "ElixirTank.h"
 #include "BuildingManager.h"
+#include "AudioEngine.h"
 USING_NS_CC;
 
 Scene* FightScene::createScene(int difficulty)
@@ -478,7 +479,8 @@ bool FightScene::initWithDifficulty(int difficulty)
 {
     // 1. 必须先调用父类初始化
     if (!Scene::init()) return false;
-
+    cocos2d::AudioEngine::stopAll(); // 停止家园音乐
+    cocos2d::AudioEngine::play2d("fight_music.mp3", true, 0.5f); // 循环播放战斗音乐
     SoldierManager::getInstance()->reset();
     BuildingManager::getInstance()->reset();
 
@@ -654,7 +656,8 @@ bool FightScene::initWithDifficulty(int difficulty)
 bool FightScene::initForReplay(const ReplayData& data)
 {
     if (!Scene::init()) return false;
-
+    cocos2d::AudioEngine::stopAll();
+    cocos2d::AudioEngine::play2d("fight_music.mp3", true, 0.5f);
     // 1. 数据重置
     SoldierManager::getInstance()->reset();
     BuildingManager::getInstance()->reset();
@@ -1238,7 +1241,16 @@ void FightScene::showGameOver(bool isWin)
     // 1. 创建结果图片
     std::string imgName = isWin ? "Victory.png" : "Defeat.png";
     auto resultSprite = Sprite::create(imgName);
-
+    if(isWin)
+    {
+        cocos2d::AudioEngine::stopAll(); // 停掉激情的战斗BGM
+        cocos2d::AudioEngine::play2d("win.mp3", false, 1.0f); // 播放一次胜利音效
+    }
+    else
+    {
+        cocos2d::AudioEngine::stopAll(); // 停掉激情的战斗BGM
+        cocos2d::AudioEngine::play2d("battle_lost.mp3", false, 1.0f); // 播放一次失败音效
+    }
     if (resultSprite)
     {
         resultSprite->setPosition(visibleSize.width / 2, visibleSize.height / 2);

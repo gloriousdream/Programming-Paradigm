@@ -14,6 +14,8 @@
 #include "CoinCollection.h"    
 #include "WaterCollection.h"  
 #include "Boom.h"
+// 4.0 
+#include "AudioEngine.h"
 USING_NS_CC;
 int GameScene::gold = 1000;       // 初始金币
 int GameScene::holyWater = 500;   // 初始圣水
@@ -407,7 +409,10 @@ void GameScene::onEnter()
 {
     // 先调用父类的 onEnter 
     Scene::onEnter();
+    cocos2d::AudioEngine::stopAll();
 
+    // 播放家园背景音乐
+    cocos2d::AudioEngine::play2d("scene_music.mp3", true, 0.5f);
     // 每次回到这个场景，都强制刷新一次 UI
     this->updateResourceDisplay();
     this->saveData();
@@ -427,11 +432,9 @@ void GameScene::update(float dt)
         _nightLayer->setOpacity(static_cast<GLubyte>(opacity));
     }
 }
-
 bool GameScene::init()
 {
     if (!Scene::init()) return false;
-
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
@@ -605,7 +608,6 @@ bool GameScene::init()
         CCLOG("GameScene: Gold increased by %d", amount);
         });
     _eventDispatcher->addEventListenerWithSceneGraphPriority(collectCoinListener, this);
-
     updateResourceDisplay();
     this->loadData();
     return true;
