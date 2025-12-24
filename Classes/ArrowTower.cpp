@@ -12,7 +12,7 @@ bool ArrowTower::init()
     currentHP = maxHP;
     updateHPBar();
 
-    // 建造和升级消耗（你同意的数值）
+    // 建造和升级消耗
     buildCostGold = 120;
     buildCostHoly = 60;
     // 升级消耗：到2级 / 到3级

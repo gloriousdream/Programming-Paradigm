@@ -41,8 +41,8 @@ void GameScene::spawnHomeSoldier(int type)
     if (maxY <= minY) maxY = minY + 1;
 
     // 随机计算 X 和 Y
-    float randX = minX + (rand() % (int)(maxX - minX));
-    float randY = minY + (rand() % (int)(maxY - minY));
+    float randX = minX + (rand() % static_cast<int>(maxX - minX));
+    float randY = minY + (rand() % static_cast<int>(maxY - minY));
     Vec2 spawnPos(randX, randY);
 
     // 3. 创建士兵
@@ -170,7 +170,6 @@ void GameScene::saveData()
             else if (dynamic_cast<Cannon*>(b)) typeStr = "Cannon";
             else if (dynamic_cast<GoldStage*>(b)) typeStr = "GoldStage";
             else if (dynamic_cast<ElixirTank*>(b)) typeStr = "ElixirTank";
-            // 修复 CoinCollection 和 WaterCollection 无法保存的问题
             else if (dynamic_cast<CoinCollection*>(b)) typeStr = "CoinCollection";
             else if (dynamic_cast<WaterCollection*>(b)) typeStr = "WaterCollection";
             else if (dynamic_cast<Boom*>(b)) typeStr = "Boom";
@@ -242,12 +241,23 @@ void GameScene::loadData()
         std::string key = "Soldier_" + std::to_string(i);
         int count = userDefault->getIntegerForKey(key.c_str(), 0);
 
-        addGlobalSoldierCount(i, count);
-        totalPopulation += count;
-
-        for (int k = 0; k < count; k++)
+        if (count > 0)
         {
-            this->spawnHomeSoldier(i);
+            // 恢复数据
+            addGlobalSoldierCount(i, count);
+            // 恢复画面
+            for (int k = 0; k < count; k++)
+            {
+                this->spawnHomeSoldier(i);
+            }
+            int singleSoldierPop = 1; // 默认占1个
+            if (i == 1)      singleSoldierPop = 1;  
+            else if (i == 2) singleSoldierPop = 5;  
+            else if (i == 3) singleSoldierPop = 1;  
+            else if (i == 4) singleSoldierPop = 2; 
+
+            // 计算公式： 总人口 += 兵的数量 * 单个兵的人口
+            totalPopulation += (count * singleSoldierPop);
         }
     }
 
@@ -400,6 +410,8 @@ void GameScene::onEnter()
 
     // 每次回到这个场景，都强制刷新一次 UI
     this->updateResourceDisplay();
+    this->saveData();
+    CCLOG("Safe Save: Entered Home Scene."); // 打印日志方便验证
 }
 Scene* GameScene::createScene()
 {
@@ -506,7 +518,7 @@ bool GameScene::init()
     mouseListener->onMouseMove = [=](Event* event) {
         if (placeModebuild && ghostSprite)
         {
-            EventMouse* e = (EventMouse*)event;
+            EventMouse* e = static_cast<EventMouse*>(event);
             Vec2 temp = e->getLocationInView();
             Vec2 mousePos = Vec2(temp.x, temp.y);
 
@@ -524,7 +536,7 @@ bool GameScene::init()
     auto buildingListener = EventListenerCustom::create("BUILDING_CLICKED", [=](EventCustom* event) {
         if (placeModebuild) return; // 建造模式下不响应
 
-        Sprite* building = (Sprite*)event->getUserData();
+        Sprite* building = static_cast<Sprite*>(event->getUserData());
         onBuildingClicked(building);
         });
     _eventDispatcher->addEventListenerWithSceneGraphPriority(buildingListener, this);

@@ -58,8 +58,7 @@ void ElixirTank::updateVisuals(int currentHoly, int maxHoly)
     if (maxHoly <= 0) maxHoly = 1;
 
     // 计算圣水百分比
-    float percent = (float)currentHoly / (float)maxHoly;
-
+    float percent = static_cast<float>(currentHoly) / static_cast<float>(maxHoly);
     if (percent > 1.0f) percent = 1.0f;
     if (percent < 0.0f) percent = 0.0f;
 

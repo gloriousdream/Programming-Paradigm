@@ -63,8 +63,7 @@ void GoldStage::updateVisuals(int currentGold, int maxGold)
     if (maxGold <= 0) maxGold = 1; // 防止除零
 
     // 计算当前金币百分比
-    float percent = (float)currentGold / (float)maxGold;
-
+    float percent = static_cast<float>(currentGold) / static_cast<float>(maxGold);
     // 限制百分比在 0.0 - 1.0 之间
     if (percent > 1.0f) percent = 1.0f;
     if (percent < 0.0f) percent = 0.0f;

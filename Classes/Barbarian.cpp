@@ -23,7 +23,7 @@ bool Barbarian::init()
 
 void Barbarian::actionWalk()
 {
-    // 【关键】使用基类计算好的瞬时方向
+    // 使用基类计算好的瞬时方向
     Vec2 diff = this->getCurrentDirection();
     if (diff.length() < 0.1f) diff = Vec2(1, 0);
 

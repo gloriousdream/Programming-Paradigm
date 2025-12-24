@@ -691,8 +691,8 @@ void FightScene::update(float dt)
     if (_timeLeft < 0) _timeLeft = 0;
 
     // 更新 Label 显示 (格式 MM:SS)
-    int minutes = (int)(_timeLeft / 60);
-    int seconds = (int)(_timeLeft) % 60;
+    int minutes = static_cast<int>(_timeLeft / 60);
+    int seconds = static_cast<int>(_timeLeft) % 60;
     _timeLabel->setString(cocos2d::StringUtils::format("%02d:%02d", minutes, seconds));
 
     // 回放自动操作逻辑
@@ -930,7 +930,7 @@ void FightScene::generateLevel()
         goldStageCount = 1; elixirTankCount = 1; boomcount = 6; // 困难：各3个
     }
 
-    // 第一步：放置大本营 (TownHall 3x3) -- 保持你的原逻辑不动
+    // 第一步：放置大本营 (TownHall 3x3)
     auto townHall = TownHall::create();
     setBuildingLevel(townHall, targetLevel);
 
