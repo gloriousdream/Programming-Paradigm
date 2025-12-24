@@ -482,6 +482,33 @@ bool FightScene::initWithDifficulty(int difficulty)
     SoldierManager::getInstance()->reset();
     BuildingManager::getInstance()->reset();
 
+    // 1. 创建下雨效果
+    auto rain = ParticleRain::create();
+
+    // 2. 设置位置（屏幕顶部中间）
+    rain->setPosition(Vec2(Director::getInstance()->getVisibleSize().width / 2,
+        Director::getInstance()->getVisibleSize().height));
+
+    // 3. 设置发射范围（覆盖全屏宽度）
+    rain->setPosVar(Vec2(Director::getInstance()->getVisibleSize().width / 2, 0));
+
+    // 调整雨滴大小和密度
+    // 1. 调大雨滴尺寸 (默认大约是 4.0 左右，改成 10-15 会很明显)
+    rain->setStartSize(12.0f);      // 初始大小
+    rain->setStartSizeVar(4.0f);    // 大小随机波动范围 (有的8，有的16，看起来自然)
+    rain->setEndSize(12.0f);        // 落地时的大小
+    rain->setEndSizeVar(4.0f);
+
+    // 2. 增加雨滴数量/密度
+    rain->setTotalParticles(1000);  
+
+    // 3. 加快下落速度 
+    rain->setSpeed(800);            // 速度调快
+    rain->setSpeedVar(100);
+
+    rain->setLife(3); // 存活时间，保证雨滴能落到底部
+    this->addChild(rain, 999);
+
     // 清理 FightScene 自己的变量
     _mySoldiers.clear();
     _enemyBuildings.clear();

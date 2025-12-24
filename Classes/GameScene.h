@@ -1,4 +1,3 @@
-
 #define __GAME_SCENE_H__
 
 #include "cocos2d.h"
@@ -11,6 +10,10 @@ public:
     virtual bool init();
     CREATE_FUNC(GameScene);
     virtual void onEnter() override;
+
+    // 核心循环函数，用于计算昼夜时间
+    virtual void update(float dt) override;
+
     void onBuildingClicked(cocos2d::Sprite* building);
     void showUpgradeButton(cocos2d::Sprite* building);
     void updateResourceDisplay();
@@ -36,7 +39,12 @@ public:
     // 辅助：根据名字创建建筑
     cocos2d::Sprite* createBuildingByName(std::string name, int level);
     static int gems; // 宝石数量
+
 private:
+    // 昼夜系统核心变量
+    cocos2d::LayerColor* _nightLayer = nullptr; // 黑色半透明遮罩层
+    float _dayNightTimer = 0.0f;                // 记录时间流逝
+
     bool placeModebuild = false;
     bool placeModesoldier = false;
     int selectedType = 0;
@@ -44,7 +52,7 @@ private:
     static int holyWater;
     // 当前显示升级菜单的建筑
     cocos2d::Sprite* currentBuildingMenu = nullptr;
-    
+
     // 用于记录当前打开的弹窗（升级菜单、造兵菜单等）
     cocos2d::Node* currentPopup = nullptr;
     cocos2d::Label* gemLabel;
@@ -54,7 +62,6 @@ private:
     void closeCurrentPopup();
 
     // 玩家资源
-
     int population = 0;
 
     cocos2d::Label* goldLabel = nullptr;
@@ -73,7 +80,7 @@ private:
 
     // 存储士兵库存 <兵种类型, 数量>
     static std::map<int, int> _globalSoldiers;
-    
+
     // 大本营库存
     static std::map<int, int> _homeSoldiers;
 };
