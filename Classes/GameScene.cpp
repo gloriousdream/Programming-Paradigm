@@ -11,8 +11,8 @@
 #include "ElixirTank.h"   // 圣水罐
 #include "Cannon.h"       // 加农炮 
 #include "ArrowTower.h"   // 箭塔 
-#include "CoinCollection.h"   // 
-#include "WaterCollection.h"  // 
+#include "CoinCollection.h"    
+#include "WaterCollection.h"  
 #include "Boom.h"
 USING_NS_CC;
 int GameScene::gold = 1000;       // 初始金币
@@ -94,7 +94,7 @@ void GameScene::showSkipButton(cocos2d::Sprite* building)
         "accelerate.png", "accelerate.png",
         [=](Ref*)
         {
-            // 【关键修改】检查宝石是否足够
+            // 检查宝石是否足够
             if (gems >= 1)
             {
                 // 1. 扣除宝石
@@ -151,7 +151,7 @@ void GameScene::saveData()
     for (int i = 1; i <= 4; i++)
     {
         std::string key = "Soldier_" + std::to_string(i);
-        userDefault->setIntegerForKey(key.c_str(), getGlobalSoldierCount(i));
+        userDefault->setIntegerForKey(key.c_str(), _homeSoldiers[i]);
     }
 
     // 3. 保存建筑
@@ -421,11 +421,31 @@ bool GameScene::init()
         this->addChild(bg, 0);
     }
 
+    // 我的温馨小屋
+    auto labelHouse = Label::createWithSystemFont("My Base Camp", "Arial", 40);
+    labelHouse->setColor(Color3B::YELLOW); // 设为黄色显眼一点
+    labelHouse->enableOutline(Color4B::BLACK, 2); // 加个描边
+    labelHouse->setPosition(Vec2(origin.x + visibleSize.width / 2, origin.y + visibleSize.height - 50));
+    this->addChild(labelHouse, 1000); // 层级设高点，防止被挡住
+
+    auto myHouseSprite = Sprite::create("MyHouse.png");
+    if (myHouseSprite) {
+        // 计算位置：放在文字右侧 60 像素处
+        float offsetX = labelHouse->getContentSize().width / 2 + 60;
+        myHouseSprite->setPosition(labelHouse->getPosition() + Vec2(offsetX, 0));
+
+        this->addChild(myHouseSprite, 1000);
+    }
+    else {
+        // 如果没图，输出个日志防止崩溃
+        CCLOG("Error: MyHouse.png not found!");
+    }
+
     // 建造、战斗按钮
     auto buildBtn = MenuItemImage::create("Building.png", "Building.png", CC_CALLBACK_0(GameScene::onBuildButtonPressed, this));
     auto FightBtn = MenuItemImage::create("Fight.png", "Fight.png", CC_CALLBACK_0(GameScene::onFightpushed, this));
     auto menu = Menu::create(buildBtn, FightBtn, nullptr);
-    menu->setPosition(origin.x + visibleSize.width - 130, origin.y + visibleSize.height / 2);
+    menu->setPosition(origin.x + visibleSize.width - 80, origin.y + visibleSize.height / 2);
     menu->alignItemsVerticallyWithPadding(50);
     this->addChild(menu, 10);
 
@@ -964,8 +984,8 @@ void GameScene::onFightpushed()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
-    float menuX = origin.x + visibleSize.width - 130;
-    float menuY = origin.y + visibleSize.height / 2 - 200;
+    float menuX = origin.x + visibleSize.width - 80;
+    float menuY = origin.y + visibleSize.height / 2 - 230;
 
     // EASY 
     auto btnEasy = MenuItemImage::create("Easy.png", "Easy.png", [=](Ref* sender) {

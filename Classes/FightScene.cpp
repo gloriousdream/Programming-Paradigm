@@ -1289,7 +1289,6 @@ void FightScene::showGameOver(bool isWin)
         menu->setPosition(visibleSize.width / 2, visibleSize.height / 2 - 200);
         this->addChild(menu, 300);
     }
-    // -------------------------------------
 
     CCLOG("Game Over: %s", isWin ? "Win" : "Lose");
 }
