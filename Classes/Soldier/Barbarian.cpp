@@ -7,8 +7,8 @@ bool Barbarian::init()
     if (!Soldier::init()) return false;
 
     // 加载资源
-    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("barbarianwalk.plist");
-    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("barbarianattack.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("Soldiers/Barbarian/barbarianwalk.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("Soldiers/Barbarian/barbarianattack.plist");
 
     // 初始展示
     auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName("barbarian_side_walk_01.png");

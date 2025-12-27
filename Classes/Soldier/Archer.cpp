@@ -6,8 +6,8 @@ bool Archer::init()
 {
     if (!Soldier::init()) return false;
 
-    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("archerwalk.plist");
-    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("archerattack.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("Soldiers/Archer/archerwalk.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("Soldiers/Archer/archerattack.plist");
 
     // Ô¶³Ì¹¥»÷¾àÀë
     this->_attackRange = 250.0f;

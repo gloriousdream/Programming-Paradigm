@@ -38,13 +38,13 @@ bool Soldiermenu::init()
     // 假设排成一排，间距 150
     float startX = centerX - 225; // (150 * 3) / 2
 
-    createSoldierUnit("yemanren_select.png", 1, Vec2(startX, centerY));
-    createSoldierUnit("juren_select.png", 2, Vec2(startX + 150, centerY));
-    createSoldierUnit("gongjianshou_select.png", 3, Vec2(startX + 300, centerY));
-    createSoldierUnit("boom_select.png", 4, Vec2(startX + 450, centerY));
+    createSoldierUnit("UI/SoldierMenu/yemanren_select.png", 1, Vec2(startX, centerY));
+    createSoldierUnit("UI/SoldierMenu/juren_select.png", 2, Vec2(startX + 150, centerY));
+    createSoldierUnit("UI/SoldierMenu/gongjianshou_select.png", 3, Vec2(startX + 300, centerY));
+    createSoldierUnit("UI/SoldierMenu/boom_select.png", 4, Vec2(startX + 450, centerY));
 
     // 添加一个关闭按钮在右上角
-    auto closeBtn = MenuItemImage::create("CloseNormal.png", "CloseSelected.png", [=](Ref*)
+    auto closeBtn = MenuItemImage::create("UI/SoldierMenu/CloseNormal.png", "UI/SoldierMenu/CloseSelected.png", [=](Ref*)
         {
             this->removeFromParent();
         });

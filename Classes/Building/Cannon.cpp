@@ -10,7 +10,7 @@ bool Cannon::init()
     if (!Building::init()) return false;
 
     // 2. 加载图集
-    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("atlas.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("Buildings/Cannon/atlas.plist");
 
     // 3. 设置 Cannon 本身为底座
     // 使用 setSpriteFrame 会自动把 ContentSize 设置为图片原本的大小
@@ -22,7 +22,8 @@ bool Cannon::init()
     // 5. 创建炮管
     _barrel = Sprite::createWithSpriteFrameName("cannon01.png");
 
-    if (_barrel) {
+    if (_barrel)
+    {
         // 获取底座当前的实际大小
         Size standSize = this->getContentSize();
 
@@ -34,7 +35,8 @@ bool Cannon::init()
 
         this->addChild(_barrel, 1); // Z轴为1，确保盖在底座上面
     }
-    else {
+    else
+    {
         CCLOG("Error: 找不到 cannon01.png");
     }
 
@@ -62,7 +64,8 @@ bool Cannon::init()
 
 void Cannon::update(float dt)
 {
-    if (_cooldownTimer > 0) {
+    if (_cooldownTimer > 0)
+    {
         _cooldownTimer -= dt;
     }
     // A. 获取所有士兵
@@ -128,7 +131,8 @@ void Cannon::updateBarrelDirection(Vec2 targetPos)
     // 6. 设置图片
     std::string frameName = StringUtils::format("cannon%02d.png", index);
     auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(frameName);
-    if (!frame) {
+    if (!frame)
+    {
         frameName = StringUtils::format("cannon%d.png", index);
         frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(frameName);
     }
@@ -164,7 +168,7 @@ bool Cannon::fireAt(Soldier* target)
     }
 
     // 3. 发射炮弹 (完全保持你的逻辑)
-    auto ball = Sprite::create("CannonBall.png");
+    auto ball = Sprite::create("Buildings/Cannon/CannonBall.png");
     if (!ball)
     {
         // 兜底：画个黑球
@@ -215,12 +219,14 @@ void Cannon::upgrade()
     level++;
 
     // 升级逻辑：提升属性
-    if (level == 2) {
+    if (level == 2)
+    {
         maxHP = 550;
         attackDamage = 35;
         upgradeCostGold = 300;
     }
-    else if (level == 3) {
+    else if (level == 3)
+    {
         maxHP = 750;
         attackDamage = 50;
         upgradeCostGold = 0;

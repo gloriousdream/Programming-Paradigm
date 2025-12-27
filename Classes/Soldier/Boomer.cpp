@@ -7,8 +7,8 @@ bool Bomber::init()
     if (!Soldier::init()) return false;
 
     // 加载动画资源
-    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("wallbreakerwalk.plist");
-    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("wallbreakerattack.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("Soldiers/Bomber/wallbreakerwalk.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("Soldiers/Bomber/wallbreakerattack.plist");
 
     // 初始展示
     auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName("wall_breaker_side_walk_01.png");
@@ -118,7 +118,7 @@ void Bomber::actionAttack()
         {
 
             // A. 创建炸弹精灵
-            auto bomb = Sprite::create("wall_breaker_bomb.png");
+            auto bomb = Sprite::create("Soldiers/Bomber/wall_breaker_bomb.png");
             if (bomb)
             {
                 // 炸弹位置：放在炸弹人脚下或稍前面

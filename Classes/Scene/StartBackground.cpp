@@ -29,8 +29,8 @@ bool StartBackground::init()
     // 加入图片
 
     auto startItem = MenuItemImage::create(
-        "GetStart.png",      // 开始按钮的图片
-        "GetStart.png",
+        "UI/StartScene/GetStart.png",      // 开始按钮的图片
+        "UI/StartScene/GetStart.png",
         CC_CALLBACK_1(StartBackground::menuStartGameCallback, this)
     );
 
@@ -43,7 +43,7 @@ bool StartBackground::init()
     this->addChild(menu, 1);
 
     // 创建背景图片
-    auto sprite = Sprite::create("StartBackground.jpg");
+    auto sprite = Sprite::create("UI/StartScene/StartBackground.jpg");
 
     sprite->setPosition(Vec2(screensize.width / 2 + origin.x, screensize.height / 2 + origin.y));
 

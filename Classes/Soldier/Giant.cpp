@@ -6,8 +6,8 @@ bool Giant::init()
 {
     if (!Soldier::init()) return false;
 
-    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("giantwalk.plist");
-    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("giantattack.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("Soldiers/Giant/giantwalk.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("Soldiers/Giant/giantattack.plist");
 
     auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName("giant_side_walk_01.png");
     if (!frame) frame = SpriteFrameCache::getInstance()->getSpriteFrameByName("giant_side_walk01.png");

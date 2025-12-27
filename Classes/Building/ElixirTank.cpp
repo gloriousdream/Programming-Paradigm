@@ -1,13 +1,12 @@
 #include "Building/ElixirTank.h"
-
+#include "Scene/GameScene.h"
 USING_NS_CC;
 std::string ElixirTank::getNextLevelTextureName()
 {
     int nextLv = level + 1;
 
-    if (nextLv == 2) return "elixir_tank_01.png"; // 推测命名
-    if (nextLv == 3) return "elixir_tank_01.png"; // 推测命名
-
+    if (nextLv == 2) return "Buildings/ElixirTank/elixir_tank_01.png"; // 推测命名
+    if (nextLv == 3) return "Buildings/ElixirTank/elixir_tank_01.png"; // 推测命名
     return "";
 }
 bool ElixirTank::init()
@@ -19,7 +18,7 @@ bool ElixirTank::init()
     this->buildCostHoly = 0;
 
     // 2. 设置图片
-    this->setTexture("elixir_tank_01.png");
+    this->setTexture("Buildings/ElixirTank/elixir_tank_01.png");
 
 
     this->setScale(0.5f);
@@ -38,6 +37,8 @@ void ElixirTank::upgrade()
     // 升级逻辑示例
     level++;
     maxHP += 200;
+    int temp = GameScene::getGlobalHolyWater();
+    this->updateVisuals(temp, 1000);
 }
 
 void ElixirTank::takeDamage(int damage)
@@ -71,14 +72,12 @@ void ElixirTank::updateVisuals(int currentHoly, int maxHoly)
     else                      stage = 1; // 空
 
     // 只有状态改变时才换图
-    if (stage != _visualLevel)
-    {
-        _visualLevel = stage;
-        std::string textureName = StringUtils::format("elixir_tank_%02d.png", stage);
 
-        this->setTexture(textureName);
+    _visualLevel = stage;
+    std::string textureName = StringUtils::format("Buildings/ElixirTank/elixir_tank_%02d.png", stage);
 
-        // 保持锚点在正中心
-        this->setAnchorPoint(Vec2(0.5f, 0.5f));
-    }
+    this->setTexture(textureName);
+
+    // 保持锚点在正中心
+    this->setAnchorPoint(Vec2(0.5f, 0.5f));
 }

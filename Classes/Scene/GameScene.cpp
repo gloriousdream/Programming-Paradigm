@@ -109,7 +109,7 @@ void GameScene::showSkipButton(cocos2d::Sprite* building)
 
     // 4. 创建加速按钮
     auto btn = MenuItemImage::create(
-        "accelerate.png", "accelerate.png",
+        "UI/GameScene/accelerate.png", "UI/GameScene/accelerate.png",
         [=](Ref*)
         {
             // 检查宝石是否足够
@@ -457,16 +457,16 @@ static SoldierConfig getSoldierConfig(int type)
 static std::string getBuildingTexturePath(int type)
 {
     switch (type) {
-        case 1: return "MilitaryCamp.png";
-        case 2: return "WaterCollection.png";
-        case 3: return "ArrowTower.png";
-        case 4: return "TownHall.png";
-        case 5: return "CoinCollection.png";
+        case 1: return "Buildings/MilitaryCamp/MilitaryCamp.png";
+        case 2: return "Buildings/WaterCollection/WaterCollection.png";
+        case 3: return "Buildings/ArrowTower/ArrowTower.png";
+        case 4: return "Buildings/TownHall/TownHall.png";
+        case 5: return "Buildings/CoinCollection/CoinCollection.png";
         case 6: return "cannon_stand.png";
-        case 7: return "gold_stage_05.png";
-        case 8: return "elixir_tank_05.png";
-        case 9: return "boom1.png";
-        default: return "CloseNormal.png";
+        case 7: return "Buildings/GoldStage/gold_stage_05.png";
+        case 8: return "Buildings/ElixirTank/elixir_tank_05.png";
+        case 9: return "Buildings/Boom/boom1.png";
+        default: return "UI/SoldierMenu/CloseNormal.png";
     }
 }
 void GameScene::onEnter()
@@ -476,7 +476,7 @@ void GameScene::onEnter()
     cocos2d::AudioEngine::stopAll();
 
     // 播放家园背景音乐
-    cocos2d::AudioEngine::play2d("scene_music.mp3", true, 0.5f);
+    cocos2d::AudioEngine::play2d("music/scene_music.mp3", true, 0.5f);
     // 每次回到这个场景，都强制刷新一次 UI
     this->updateResourceDisplay();
     this->saveData();
@@ -538,7 +538,7 @@ bool GameScene::init()
     this->addChild(_nightLayer, 100);
 
     // 背景
-    auto bg = Sprite::create("GrassBackground.png");
+    auto bg = Sprite::create("BackGround/GrassBackground.png");
     if (bg) {
         bg->setAnchorPoint(Vec2::ZERO);
         bg->setPosition(origin);
@@ -552,7 +552,7 @@ bool GameScene::init()
     labelHouse->setPosition(Vec2(origin.x + visibleSize.width / 2, origin.y + visibleSize.height - 50));
     this->addChild(labelHouse, 1000); // 层级设高点，防止被挡住
 
-    auto myHouseSprite = Sprite::create("MyHouse.png");
+    auto myHouseSprite = Sprite::create("UI/GameScene/MyHouse.png");
     if (myHouseSprite) {
         // 计算位置：放在文字右侧 60 像素处
         float offsetX = labelHouse->getContentSize().width / 2 + 60;
@@ -566,15 +566,15 @@ bool GameScene::init()
     }
 
     // 建造、战斗按钮
-    auto buildBtn = MenuItemImage::create("Building.png", "Building.png", CC_CALLBACK_0(GameScene::onBuildButtonPressed, this));
-    auto FightBtn = MenuItemImage::create("Fight.png", "Fight.png", CC_CALLBACK_0(GameScene::onFightpushed, this));
+    auto buildBtn = MenuItemImage::create("UI/GameScene/Building.png", "UI/GameScene/Building.png", CC_CALLBACK_0(GameScene::onBuildButtonPressed, this));
+    auto FightBtn = MenuItemImage::create("UI/GameScene/Fight.png", "UI/GameScene/Fight.png", CC_CALLBACK_0(GameScene::onFightpushed, this));
     auto menu = Menu::create(buildBtn, FightBtn, nullptr);
     menu->setPosition(origin.x + visibleSize.width - 80, origin.y + visibleSize.height / 2);
     menu->alignItemsVerticallyWithPadding(50);
     this->addChild(menu, 10);
 
     // 资源显示
-    auto goldSprite = Sprite::create("GoldCoin.png");
+    auto goldSprite = Sprite::create("UI/GameScene/GoldCoin.png");
     goldSprite->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 50));
     this->addChild(goldSprite, 10);
 
@@ -583,7 +583,7 @@ bool GameScene::init()
     goldLabel->setPosition(goldSprite->getPosition() + Vec2(20, 0));
     this->addChild(goldLabel, 10);
 
-    auto waterSprite = Sprite::create("HolyWater.png");
+    auto waterSprite = Sprite::create("UI/GameScene/HolyWater.png");
     waterSprite->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 90));
     this->addChild(waterSprite, 10);
 
@@ -593,7 +593,7 @@ bool GameScene::init()
     this->addChild(waterLabel, 10);
 
     // 人口显示
-    auto popSprite = Sprite::create("Population.png");
+    auto popSprite = Sprite::create("UI/GameScene/Population.png");
     popSprite->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 130));
     this->addChild(popSprite, 10);
 
@@ -602,7 +602,7 @@ bool GameScene::init()
     populationLabel->setPosition(popSprite->getPosition() + Vec2(20, 0));
     this->addChild(populationLabel, 10);
 
-    auto gemSprite = Sprite::create("gem.png"); // 
+    auto gemSprite = Sprite::create("UI/GameScene/gem.png"); // 
     gemSprite->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 170)); // 放在人口下面 (-130 再减 40)
     this->addChild(gemSprite, 10);
 
@@ -731,7 +731,7 @@ void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
     if (!isMaxLv)
     {
         upgradeBtn = MenuItemImage::create(
-            "UpgradeButton.png", "UpgradeButton.png",
+            "UI/GameScene/UpgradeButton.png", "UI/GameScene/UpgradeButton.png",
             [=](Ref* sender)
             {
                 int goldCost = targetBuilding->upgradeCostGold;
@@ -760,7 +760,7 @@ void GameScene::showMilitaryOptions(cocos2d::Sprite* building)
 
     // 造兵按钮
     auto trainBtn = MenuItemImage::create(
-        "Train.png", "Train.png",
+        "UI/GameScene/Train.png", "UI/GameScene/Train.png",
         [=](Ref* sender)
         {
             this->showTrainMenu(building);
@@ -966,7 +966,7 @@ void GameScene::showUpgradeButton(Sprite* building)
     else {
         // 创建升级按钮 
         auto btn = MenuItemImage::create(
-            "UpgradeButton.png", "UpgradeButton.png",
+            "UI/GameScene/UpgradeButton.png", "UI/GameScene/UpgradeButton.png",
             [=](Ref*) {
                 // 直接从建筑对象中读取当前等级对应的升级消耗
                 int reqG = b->upgradeCostGold;
@@ -1042,24 +1042,12 @@ void GameScene::onBuildButtonPressed()
             CCLOG("GameScene: 正在创建加农炮虚影...");
 
             // 必须先加载 plist
-            SpriteFrameCache::getInstance()->addSpriteFramesWithFile("atlas.plist");
+            SpriteFrameCache::getInstance()->addSpriteFramesWithFile("Buildings/Cannon/atlas.plist");
 
             // 优先使用底座 
             this->ghostSprite = Sprite::createWithSpriteFrameName("cannon_stand.png");
 
-            // 如果找不到底座，尝试找炮管
-            if (!this->ghostSprite) {
-                CCLOG("GameScene: 没找到底座，尝试使用炮管...");
-                this->ghostSprite = Sprite::createWithSpriteFrameName("cannon01.png");
-            }
-
-            // 如果找不到，创建一个显眼的红色方块
-            if (!this->ghostSprite) {
-                CCLOG("GameScene: 【严重错误】无法创建虚影！显示红色方块警告。");
-                this->ghostSprite = Sprite::create();
-                this->ghostSprite->setTextureRect(Rect(0, 0, 80, 80)); // 80x80的大方块
-                this->ghostSprite->setColor(Color3B::RED);
-            }
+        
         }
         else {
             // 其他普通建筑 
@@ -1111,7 +1099,7 @@ void GameScene::onFightpushed()
     float menuY = origin.y + visibleSize.height / 2 - 230;
 
     // EASY 
-    auto btnEasy = MenuItemImage::create("Easy.png", "Easy.png", [=](Ref* sender) {
+    auto btnEasy = MenuItemImage::create("UI/GameScene/Easy.png", "UI/GameScene/Easy.png", [=](Ref* sender) {
         CCLOG("Go to Easy Mode");
 
         GameScene::_globalSoldiers = GameScene::_homeSoldiers;
@@ -1124,7 +1112,7 @@ void GameScene::onFightpushed()
         });
 
     // MIDDLE
-    auto btnMiddle = MenuItemImage::create("Middle.png", "Middle.png", [=](Ref* sender) {
+    auto btnMiddle = MenuItemImage::create("UI/GameScene/Middle.png", "UI/GameScene/Middle.png", [=](Ref* sender) {
         CCLOG("Go to Middle Mode");
 
         GameScene::_globalSoldiers = GameScene::_homeSoldiers;
@@ -1136,7 +1124,7 @@ void GameScene::onFightpushed()
         });
 
     // HARD 
-    auto btnHard = MenuItemImage::create("Hard.png", "Hard.png", [=](Ref* sender) {
+    auto btnHard = MenuItemImage::create("UI/GameScene/Hard.png", "UI/GameScene/Hard.png", [=](Ref* sender) {
         CCLOG("Go to Hard Mode");
 
         GameScene::_globalSoldiers = GameScene::_homeSoldiers;

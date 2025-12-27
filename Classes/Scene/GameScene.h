@@ -26,7 +26,7 @@ public:
     void showSkipButton(cocos2d::Sprite* building);
     // 获取全局士兵数量
     static int getGlobalSoldierCount(int type);
-
+    
     // 修改全局士兵数量
     static void addGlobalSoldierCount(int type, int amount);
     void saveData(); // 保存游戏数据

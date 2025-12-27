@@ -32,7 +32,7 @@ bool WaterCollection::init()
     maxStorage = 100; // 1级上限
 
     // 3. 创建悬浮图标
-    rewardIcon = Sprite::create("Water.png");
+    rewardIcon = Sprite::create("Buildings/WaterCollection/Water.png");
     if (rewardIcon)
     {
         rewardIcon->setPosition(getContentSize().width / 2, getContentSize().height + 40);
@@ -130,11 +130,11 @@ void WaterCollection::upgrade()
     level++;
     // 升级逻辑示例
     if (level == 2) {
-        setTexture("WaterCollection.png"); // 如果有新图换新图
+        setTexture("Buildings/WaterCollection/WaterCollection.png"); // 如果有新图换新图
         maxHP = 150;
     }
     else if (level == 3) {
-        setTexture("WaterCollection.png");
+        setTexture("Buildings/WaterCollection/WaterCollection.png");
         maxHP = 180;
     }
 

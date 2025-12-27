@@ -1,12 +1,12 @@
 #include "Building/GoldStage.h"
-
+#include"Scene/GameScene.h"
 USING_NS_CC;
 std::string GoldStage::getNextLevelTextureName()
 {
     int nextLv = level + 1;
 
-    if (nextLv == 2) return "gold_stage_01.png"; // 推测命名
-    if (nextLv == 3) return "gold_stage_01.png"; // 推测命名
+    if (nextLv == 2) return "Buildings/GoldStage/gold_stage_01.png"; // 推测命名
+    if (nextLv == 3) return "Buildings/GoldStage/gold_stage_01.png"; // 推测命名
 
     return "";
 }
@@ -19,7 +19,7 @@ bool GoldStage::init()
     this->buildCostHoly = 0;
 
     // 2. 设置图片
-    this->setTexture("gold_stage_01.png");
+    this->setTexture("Buildings/GoldStage/gold_stage_01.png");
 
 
     this->setScale(0.5f);
@@ -55,6 +55,7 @@ void GoldStage::upgrade()
     // 升级逻辑示例
     level++;
     maxHP += 200;
+    this->updateVisuals(GameScene::getGlobalGold(), 1000);
     CCLOG("GoldStage upgraded to level %d", level);
 }
 
@@ -77,14 +78,9 @@ void GoldStage::updateVisuals(int currentGold, int maxGold)
     else                      stage = 1; // 空
 
     // 只有状态改变时才更换贴图，节省性能
-    if (stage != _visualLevel)
-    {
-        _visualLevel = stage;
-        std::string textureName = StringUtils::format("gold_stage_%02d.png", stage);
+    _visualLevel = stage;
+    std::string textureName = StringUtils::format("Buildings/GoldStage/gold_stage_%02d.png", stage);
 
-        // 切换图片
-        this->setTexture(textureName);
-
-       
-    }
+    // 切换图片
+    this->setTexture(textureName);
 }

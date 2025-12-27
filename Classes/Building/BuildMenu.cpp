@@ -12,7 +12,7 @@ bool BuildMenu::init()
     if (!Layer::init()) return false;
     //先加载图集！
 
-    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("atlas.plist");
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("Buildings/Cannon/atlas.plist");
 
     auto visibleSize = Director::getInstance()->getVisibleSize();
 
@@ -27,7 +27,8 @@ bool BuildMenu::init()
     _eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, bg);
 
     // 定义建筑列表 
-    struct BuildingInfo {
+    struct BuildingInfo
+    {
         std::string img;
         int type;
         int goldCost;
@@ -35,15 +36,15 @@ bool BuildMenu::init()
     };
 
     std::vector<BuildingInfo> buildings = {
-        {"MilitaryCamp.png", 1, 50, 30},
-        {"WaterCollection.png", 2, 40, 20},
-        {"ArrowTower.png", 3, 70, 40},
-        {"TownHall.png", 4, 150, 100},
-        {"CoinCollection.png", 5, 20, 80},
+        {"Buildings/MilitaryCamp/MilitaryCamp.png", 1, 50, 30},
+        {"Buildings/WaterCollection/WaterCollection.png", 2, 40, 20},
+        {"Buildings/ArrowTower/ArrowTower.png", 3, 70, 40},
+        {"Buildings/TownHall/TownHall.png", 4, 150, 100},
+        {"Buildings/CoinCollection/CoinCollection.png", 5, 20, 80},
         {"cannon_stand.png", 6, 200, 0},
-        { "gold_stage_05.png", 7, 0, 0 },
-        { "elixir_tank_05.png", 8, 0, 0 },
-        { "boom1.png", 9, 150, 0 }
+        { "Buildings/GoldStage/gold_stage_05.png", 7, 0, 0 },
+        { "Buildings/ElixirTank/elixir_tank_05.png", 8, 0, 0 },
+        { "Buildings/Boom/boom1.png", 9, 150, 0 }
     };
 
     Vector<MenuItem*> menuItems;
@@ -55,7 +56,8 @@ bool BuildMenu::init()
         // 先去缓存里查，看看是不是 plist 里的图
         auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(info.img);
 
-        if (frame) {
+        if (frame)
+        {
             // A. 如果是图集里的图 (cannon_stand.png)
             // 必须先创建 Sprite，再包装成 MenuItemSprite
             auto normalSprite = Sprite::createWithSpriteFrameName(info.img);
@@ -65,25 +67,29 @@ bool BuildMenu::init()
             item = MenuItemSprite::create(
                 normalSprite,
                 selectedSprite,
-                [=](Ref*) {
+                [=](Ref*)
+                {
                     if (onSelectBuilding) onSelectBuilding(info.type);
                 }
             );
         }
-        else {
+        else
+        {
             // B. 如果是普通文件 (TownHall.png 等)
             // 直接用 MenuItemImage 读取文件
             item = MenuItemImage::create(
                 info.img,
                 info.img, // 选中图偷懒用同一张，或者你可以准备一张变暗的图
-                [=](Ref*) {
+                [=](Ref*)
+                {
                     if (onSelectBuilding) onSelectBuilding(info.type);
                 }
             );
         }
 
         // 如果图片缺失，创建一个红叉占位，防止崩溃
-        if (!item) {
+        if (!item)
+        {
             auto errSpr = Sprite::create();
             errSpr->setTextureRect(Rect(0, 0, 50, 50));
             errSpr->setColor(Color3B::RED);
@@ -108,7 +114,7 @@ bool BuildMenu::init()
     this->addChild(menu);
 
     // 关闭按钮
-    auto closeBtn = MenuItemImage::create("CloseNormal.png", "CloseSelected.png", [=](Ref*)
+    auto closeBtn = MenuItemImage::create("UI/SoldierMenu/CloseNormal.png", "UI/SoldierMenu/CloseSelected.png", [=](Ref*)
         {
             this->removeFromParent();
         });

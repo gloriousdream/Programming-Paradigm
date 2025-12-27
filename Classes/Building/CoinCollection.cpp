@@ -5,8 +5,8 @@ std::string CoinCollection::getNextLevelTextureName()
 {
     int nextLv = level + 1;
 
-    if (nextLv == 2) return "CoinCollection2.png";
-    if (nextLv == 3) return "CoinCollection3.png";
+    if (nextLv == 2) return "Buildings/CoinCollection/CoinCollection2.png";
+    if (nextLv == 3) return "Buildings/CoinCollection/CoinCollection3.png";
 
     return "";
 }
@@ -14,7 +14,7 @@ bool CoinCollection::init()
 {
     if (!Building::init()) return false;
 
-    setTexture("CoinCollection.png");
+    setTexture("Buildings/CoinCollection/CoinCollection.png");
     level = 1;
     maxHP = 150;
     currentHP = maxHP;
@@ -29,7 +29,7 @@ bool CoinCollection::init()
     currentStorage = 0;
     maxStorage = 100;
 
-    rewardIcon = Sprite::create("Coin.png");
+    rewardIcon = Sprite::create("Buildings/CoinCollection/Coin.png");
     if (rewardIcon)
     {
         rewardIcon->setPosition(getContentSize().width / 2, getContentSize().height + 40);
@@ -45,20 +45,21 @@ bool CoinCollection::init()
         auto touchListener = EventListenerTouchOneByOne::create();
         touchListener->setSwallowTouches(true);
 
-        touchListener->onTouchBegan = [=](Touch* t, Event* e) {
-            auto target = static_cast<Sprite*>(e->getCurrentTarget());
-            if (!target->isVisible()) return false;
-
-            Vec2 pos = target->convertToNodeSpace(t->getLocation());
-            Size s = target->getContentSize();
-            Rect rect = Rect(0, 0, s.width, s.height);
-
-            if (rect.containsPoint(pos))
+        touchListener->onTouchBegan = [=](Touch* t, Event* e)
             {
-                this->onCollect();
-                return true;
-            }
-            return false;
+                auto target = static_cast<Sprite*>(e->getCurrentTarget());
+                if (!target->isVisible()) return false;
+
+                Vec2 pos = target->convertToNodeSpace(t->getLocation());
+                Size s = target->getContentSize();
+                Rect rect = Rect(0, 0, s.width, s.height);
+
+                if (rect.containsPoint(pos))
+                {
+                    this->onCollect();
+                    return true;
+                }
+                return false;
             };
 
         _eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, rewardIcon);
@@ -79,7 +80,8 @@ void CoinCollection::produceResource(float dt)
 
     if (currentStorage > maxStorage) currentStorage = maxStorage;
 
-    if (currentStorage > 0 && rewardIcon) {
+    if (currentStorage > 0 && rewardIcon)
+    {
         rewardIcon->setVisible(true);
     }
 }
@@ -97,7 +99,8 @@ void CoinCollection::onCollect()
     _eventDispatcher->dispatchEvent(&event);
 
     currentStorage = 0;
-    if (rewardIcon) {
+    if (rewardIcon)
+    {
         rewardIcon->setVisible(false);
     }
 }
@@ -105,14 +108,16 @@ void CoinCollection::onCollect()
 void CoinCollection::upgrade()
 {
     level++;
-    if (level == 2) {
-        setTexture("CoinCollection2.png"); 
+    if (level == 2)
+    {
+        setTexture("Buildings/CoinCollection/CoinCollection2.png");
         maxHP = 200;
         upgradeCostGold = 80;
         upgradeCostHoly = 150;
     }
-    else if (level == 3) {
-        setTexture("CoinCollection3.png");
+    else if (level == 3)
+    {
+        setTexture("Buildings/CoinCollection/CoinCollection3.png");
         maxHP = 300;
     }
 
@@ -131,7 +136,8 @@ void CoinCollection::setEnemyState(bool isEnemy)
         this->unschedule(CC_SCHEDULE_SELECTOR(CoinCollection::produceResource));
 
         // ÒÆ³ýÍ¼±ê
-        if (rewardIcon) {
+        if (rewardIcon)
+        {
             rewardIcon->removeFromParent();
             rewardIcon = nullptr;
         }

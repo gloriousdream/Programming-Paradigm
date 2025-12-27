@@ -294,10 +294,10 @@ void FightScene::showDeployMenu()
     };
 
     std::vector<SoldierOption> options = {
-        {"yemanren_select.png", 1, "Barbarian"},
-        {"juren_select.png",2, "Giant"},
-        {"gongjianshou_select.png",3, "Archer"},
-        {"boom_select.png",4, "Bomber"}
+        {"UI/SoldierMenu/yemanren_select.png", 1, "Barbarian"},
+        {"UI/SoldierMenu/juren_select.png",2, "Giant"},
+        {"UI/SoldierMenu/gongjianshou_select.png",3, "Archer"},
+        {"UI/SoldierMenu/boom_select.png",4, "Bomber"}
     };
 
     Vector<MenuItem*> items;
@@ -360,8 +360,8 @@ void FightScene::initBattleUI()
     auto visibleSize = Director::getInstance()->getVisibleSize();
 
     auto item = MenuItemImage::create(
-        "AttackButton.png",
-        "AttackButton.png",
+        "UI/FightScene/AttackButton.png",
+        "UI/FightScene/AttackButton.png",
         [=](Ref* sender)
         {
             this->showDeployMenu();
@@ -518,7 +518,7 @@ bool FightScene::initWithDifficulty(int difficulty)
     // 1. 必须先调用父类初始化
     if (!Scene::init()) return false;
     cocos2d::AudioEngine::stopAll(); // 停止家园音乐
-    cocos2d::AudioEngine::play2d("fight_music.mp3", true, 0.5f); // 循环播放战斗音乐
+    cocos2d::AudioEngine::play2d("music/fight_music.mp3", true, 0.5f); // 循环播放战斗音乐
     SoldierManager::getInstance()->reset();
     BuildingManager::getInstance()->reset();
 
@@ -572,7 +572,7 @@ bool FightScene::initWithDifficulty(int difficulty)
     // 2. 基础环境
 
     // 背景
-    auto bg = Sprite::create("GrassBackground.png");
+    auto bg = Sprite::create("BackGround/GrassBackground.png");
     if (bg)
     {
         bg->setAnchorPoint(Vec2::ZERO);
@@ -596,8 +596,8 @@ bool FightScene::initWithDifficulty(int difficulty)
 
     // 返回按钮
     MenuItem* closeItem = MenuItemImage::create(
-        "CloseNormal.png",
-        "CloseSelected.png",
+        "UI/SoldierMenu/CloseNormal.png",
+        "UI/SoldierMenu/CloseSelected.png",
         [](Ref* sender) {
             Director::getInstance()->popScene();
         });
@@ -618,7 +618,7 @@ bool FightScene::initWithDifficulty(int difficulty)
     this->addChild(menu, 100);
 
     // 3. 资源 UI (金币/圣水)
-    auto goldSprite = Sprite::create("GoldCoin.png");
+    auto goldSprite = Sprite::create("UI/GameScene/GoldCoin.png");
     if (goldSprite) {
         goldSprite->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 50));
         this->addChild(goldSprite, 20);
@@ -633,7 +633,7 @@ bool FightScene::initWithDifficulty(int difficulty)
         this->addChild(_goldLabel, 20);
     }
 
-    auto waterSprite = Sprite::create("HolyWater.png");
+    auto waterSprite = Sprite::create("UI/GameScene/HolyWater.png");
     if (waterSprite) {
         waterSprite->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 90));
         this->addChild(waterSprite, 20);
@@ -695,7 +695,7 @@ bool FightScene::initForReplay(const ReplayData& data)
 {
     if (!Scene::init()) return false;
     cocos2d::AudioEngine::stopAll();
-    cocos2d::AudioEngine::play2d("fight_music.mp3", true, 0.5f);
+    cocos2d::AudioEngine::play2d("music/fight_music.mp3", true, 0.5f);
     // 1. 数据重置
     SoldierManager::getInstance()->reset();
     BuildingManager::getInstance()->reset();
@@ -716,7 +716,7 @@ bool FightScene::initForReplay(const ReplayData& data)
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
     // 3. 背景 (复制)
-    auto bg = Sprite::create("GrassBackground.png");
+    auto bg = Sprite::create("BackGround/GrassBackground.png");
     if (bg) {
         bg->setAnchorPoint(Vec2::ZERO);
         bg->setPosition(origin);
@@ -1277,17 +1277,17 @@ void FightScene::showGameOver(bool isWin)
     auto visibleSize = Director::getInstance()->getVisibleSize();
 
     // 1. 创建结果图片
-    std::string imgName = isWin ? "Victory.png" : "Defeat.png";
+    std::string imgName = isWin ? "UI/FightScene/Victory.png" : "UI/FightScene/Defeat.png";
     auto resultSprite = Sprite::create(imgName);
     if(isWin)
     {
         cocos2d::AudioEngine::stopAll(); // 停掉激情的战斗BGM
-        cocos2d::AudioEngine::play2d("win.mp3", false, 1.0f); // 播放一次胜利音效
+        cocos2d::AudioEngine::play2d("music/win.mp3", false, 1.0f); // 播放一次胜利音效
     }
     else
     {
         cocos2d::AudioEngine::stopAll(); // 停掉激情的战斗BGM
-        cocos2d::AudioEngine::play2d("battle_lost.mp3", false, 1.0f); // 播放一次失败音效
+        cocos2d::AudioEngine::play2d("music/battle_lost.mp3", false, 1.0f); // 播放一次失败音效
     }
     if (resultSprite)
     {

@@ -6,7 +6,7 @@ bool ArrowTower::init()
     if (!Building::init()) return false;
 
     // 初始贴图与属性
-    setTexture("ArrowTower.png");
+    setTexture("Buildings/ArrowTower/ArrowTower.png");
     level = 1;
     maxHP = 100;
     currentHP = maxHP;
@@ -25,20 +25,22 @@ std::string ArrowTower::getNextLevelTextureName()
 {
     int nextLv = level + 1;
 
-    if (nextLv == 2) return "ArrowTower2.png";
-    if (nextLv == 3) return "ArrowTower3.png";
+    if (nextLv == 2) return "Buildings/ArrowTower/ArrowTower2.png";
+    if (nextLv == 3) return "Buildings/ArrowTower/ArrowTower3.png";
 
     return "";
 }
 void ArrowTower::upgrade()
 {
     level++;
-    if (level == 2) {
-        setTexture("ArrowTower2.png");
+    if (level == 2)
+    {
+        setTexture("Buildings/ArrowTower/ArrowTower2.png");
         maxHP = 140;
     }
-    else if (level == 3) {
-        setTexture("ArrowTower3.png");
+    else if (level == 3)
+    {
+        setTexture("Buildings/ArrowTower/ArrowTower3.png");
         maxHP = 180;
     }
     // 每次升级恢复满血

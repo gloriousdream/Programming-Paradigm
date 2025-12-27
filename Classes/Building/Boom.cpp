@@ -7,7 +7,7 @@ bool Boom::init()
     if (!Building::init()) return false;
 
     // 1. 默认状态：家园模式（可见、不透明）
-    setTexture("boom1.png");
+    setTexture("Buildings/Boom/boom1.png");
     this->setOpacity(255);
     this->setVisible(true);
 
@@ -27,9 +27,9 @@ bool Boom::init()
 
 std::string Boom::getNextLevelTextureName()
 {
-    if (level == 1) return "boom2.png";
-    if (level == 2) return "boom3.png";
-    return "boom1.png";
+    if (level == 1) return "Buildings/Boom/boom2.png";
+    if (level == 2) return "Buildings/Boom/boom3.png";
+    return "Buildings/Boom/boom1.png";
 }
 
 void Boom::upgrade()
