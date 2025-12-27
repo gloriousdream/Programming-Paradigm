@@ -1,0 +1,15 @@
+#ifndef __MILITARY_CAMP_H__
+#define __MILITARY_CAMP_H__
+
+#include "Building/Building.h"
+
+class MilitaryCamp : public Building
+{
+public:
+    virtual bool init() override;
+    CREATE_FUNC(MilitaryCamp);
+    virtual std::string getNextLevelTextureName() override;
+    virtual void upgrade() override;
+};
+
+#endif

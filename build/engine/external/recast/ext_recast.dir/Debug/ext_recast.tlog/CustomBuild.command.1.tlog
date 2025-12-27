@@ -1,6 +1,6 @@
 ^D:\COCOS_GAME\COCOS2D\EXTERNAL\RECAST\CMAKELISTS.TXT
 setlocal
-D:\c++\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe -SD:/cocos_game -BD:/cocos_game/build --check-stamp-file D:/cocos_game/build/engine/external/recast/CMakeFiles/generate.stamp
+D:\cmake\bin\cmake.exe -SD:/cocos_game -BD:/cocos_game/build --check-stamp-file D:/cocos_game/build/engine/external/recast/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
