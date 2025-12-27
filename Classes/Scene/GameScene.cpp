@@ -6,6 +6,7 @@
 #include "Building/Building.h"
 #include "Building/MilitaryCamp.h"
 #include "Scene/FightScene.h"
+#include <stdexcept>
 // 4.0 
 #include "AudioEngine.h"
 USING_NS_CC;
@@ -15,44 +16,67 @@ int GameScene::gems = 10;
 // 辅助函数：在左侧区域随机位置生成一个闲置士兵
 void GameScene::spawnHomeSoldier(int type)
 {
-    // 1. 获取原始区域
-    Rect area = BuildingManager::getInstance()->getSoldierSpawnArea();
-
-    float tileSize = 64.0f;
-    area.origin.x -= tileSize; // X 减小 (向左)
-    area.origin.y -= tileSize; // Y 减小 (向下)
-
-    // 2. 在这个区域内随机生成一个坐标
-    // 稍微向内收缩一点(padding)，防止贴在边缘
-    float padding = 10.0f;
-    float minX = area.origin.x + padding;
-    float maxX = area.origin.x + area.size.width - padding;
-    float minY = area.origin.y + padding;
-    float maxY = area.origin.y + area.size.height - padding;
-
-    // 防止区域太小导致崩溃 (安全检查)
-    if (maxX <= minX) maxX = minX + 1;
-    if (maxY <= minY) maxY = minY + 1;
-
-    // 随机计算 X 和 Y
-    float randX = minX + (rand() % static_cast<int>(maxX - minX));
-    float randY = minY + (rand() % static_cast<int>(maxY - minY));
-    Vec2 spawnPos(randX, randY);
-
-    // 3. 创建士兵
-    auto soldier = SoldierManager::getInstance()->createSoldier(type, spawnPos);
-
-    if (soldier)
+    try
     {
-        soldier->setMoveArea(area);
+        // 1. 获取原始区域
+        Rect area = BuildingManager::getInstance()->getSoldierSpawnArea();
 
-        // 设置为“家里的兵”，让它开始闲逛
-        soldier->actionWalk();
+        // 如果获取到的区域是非法的（比如还没初始化），直接抛出异常
+        if (area.size.width <= 0 || area.size.height <= 0) {
+            throw std::runtime_error("Invalid spawn area from BuildingManager");
+        }
 
-        // 4. 添加到场景
-        this->addChild(soldier, 15);
+        float tileSize = 64.0f;
+        area.origin.x -= tileSize; // X 减小 (向左)
+        area.origin.y -= tileSize; // Y 减小 (向下)
+
+        // 2. 在这个区域内随机生成一个坐标
+        // 稍微向内收缩一点(padding)，防止贴在边缘
+        float padding = 10.0f;
+        float minX = area.origin.x + padding;
+        float maxX = area.origin.x + area.size.width - padding;
+        float minY = area.origin.y + padding;
+        float maxY = area.origin.y + area.size.height - padding;
+
+        // 防止区域太小导致崩溃 
+        if (maxX <= minX) maxX = minX + 1;
+        if (maxY <= minY) maxY = minY + 1;
+
+        // 随机计算 X 和 Y 
+        float randX = minX + (rand() % static_cast<int>(maxX - minX));
+        float randY = minY + (rand() % static_cast<int>(maxY - minY));
+        Vec2 spawnPos(randX, randY);
+
+        // 3. 创建士兵
+        auto soldier = SoldierManager::getInstance()->createSoldier(type, spawnPos);
+
+        if (soldier)
+        {
+            soldier->setMoveArea(area);
+
+            // 设置为“家里的兵”，让它开始闲逛
+            soldier->actionWalk();
+
+            // 4. 添加到场景
+            this->addChild(soldier, 15);
+        }
+        else
+        {
+            // 如果士兵创建失败（nullptr），主动抛出异常
+            throw std::runtime_error("Failed to create soldier entity (Type: " + std::to_string(type) + ")");
+        }
     }
-}void GameScene::onExit()
+    // 捕获异常，防止游戏崩溃
+    catch (const std::exception& e)
+    {
+        CCLOG("SpawnHomeSoldier Error: %s", e.what());
+    }
+    catch (...)
+    {
+        CCLOG("SpawnHomeSoldier Error: Unknown exception occurred.");
+    }
+}
+void GameScene::onExit()
 {
     // 退出场景前，自动保存
     this->saveData();
@@ -115,7 +139,6 @@ void GameScene::showSkipButton(cocos2d::Sprite* building)
             {
                 // 宝石不足的处理
                 CCLOG("Not enough gems!");
-
                 // 可选：给个简单的提示动画
                 statusLabel->setString("Need Gems!");
                 statusLabel->setColor(Color3B::RED);
@@ -134,30 +157,33 @@ void GameScene::saveData()
 {
     auto userDefault = UserDefault::getInstance();
 
-    // 1. 保存资源
+    // 1. 保存资源 
     userDefault->setIntegerForKey("PlayerGold", gold);
     userDefault->setIntegerForKey("PlayerHolyWater", holyWater);
-
-    // 保存宝石数量
     userDefault->setIntegerForKey("PlayerGems", gems);
 
-    // 2. 保存士兵数量
+    // 2. 保存士兵数量 
     for (int i = 1; i <= 4; i++)
     {
         std::string key = "Soldier_" + std::to_string(i);
         userDefault->setIntegerForKey(key.c_str(), _homeSoldiers[i]);
     }
 
-    // 3. 保存建筑
+    // 3. 保存建筑 
     std::string buildData = "";
-    for (auto child : _children)
+
+    // 使用显式迭代器遍历 _children
+    for (auto it = _children.begin(); it != _children.end(); ++it)
     {
+        // 解引用迭代器获取 child 对象，这样下面的代码完全不用动
+        auto child = *it;
+
         Building* b = dynamic_cast<Building*>(child);
         if (b)
         {
             std::string typeStr = "";
 
-            // 判断建筑类型，必须涵盖所有建筑！
+            // 判断建筑类型，必须涵盖所有建筑
             if (dynamic_cast<TownHall*>(b)) typeStr = "TownHall";
             else if (dynamic_cast<MilitaryCamp*>(b)) typeStr = "MilitaryCamp";
             else if (dynamic_cast<ArrowTower*>(b)) typeStr = "ArrowTower";
@@ -167,6 +193,7 @@ void GameScene::saveData()
             else if (dynamic_cast<CoinCollection*>(b)) typeStr = "CoinCollection";
             else if (dynamic_cast<WaterCollection*>(b)) typeStr = "WaterCollection";
             else if (dynamic_cast<Boom*>(b)) typeStr = "Boom";
+
             // 如果找到了对应的类型字符串，就拼接到存档里
             if (!typeStr.empty())
             {
@@ -201,6 +228,13 @@ Sprite* GameScene::createBuildingByName(std::string name, int level)
     else if (name == "CoinCollection") building = CoinCollection::create();
     else if (name == "WaterCollection") building = WaterCollection::create();
     else if (name == "Boom")  building= Boom::create();
+
+    if (!building)
+    {
+        // 这行代码抛出的异常，会被 loadData 里的 catch 捕获
+        throw std::invalid_argument("Unknown building name: " + name);
+    }
+
     if (building)
     {
         // 简单循环升级
@@ -245,10 +279,10 @@ void GameScene::loadData()
                 this->spawnHomeSoldier(i);
             }
             int singleSoldierPop = 1; // 默认占1个
-            if (i == 1)      singleSoldierPop = 1;  
-            else if (i == 2) singleSoldierPop = 5;  
-            else if (i == 3) singleSoldierPop = 1;  
-            else if (i == 4) singleSoldierPop = 2; 
+            if (i == 1)      singleSoldierPop = 1;
+            else if (i == 2) singleSoldierPop = 5;
+            else if (i == 3) singleSoldierPop = 1;
+            else if (i == 4) singleSoldierPop = 2;
 
             // 计算公式： 总人口 += 兵的数量 * 单个兵的人口
             totalPopulation += (count * singleSoldierPop);
@@ -263,58 +297,96 @@ void GameScene::loadData()
         gemLabel->setString(std::to_string(gems));
     }
 
-    // 4. 恢复建筑
+    // 4. 恢复建筑 Try-Catch 错误处理
     std::string buildData = userDefault->getStringForKey("BuildingData", "");
     if (!buildData.empty())
     {
         std::stringstream ss(buildData);
         std::string segment;
+
         while (std::getline(ss, segment, ';'))
         {
             if (segment.empty()) continue;
-            std::stringstream ss2(segment);
-            std::string typeStr, levelStr, xStr, yStr;
 
-            if (!std::getline(ss2, typeStr, ',')) continue;
-            if (!std::getline(ss2, levelStr, ',')) continue;
-            if (!std::getline(ss2, xStr, ',')) continue;
-            if (!std::getline(ss2, yStr, ',')) continue;
-
-            int level = std::atoi(levelStr.c_str());
-            int x = std::atoi(xStr.c_str());
-            int y = std::atoi(yStr.c_str());
-            if (level < 1) level = 1;
-
-            // 创建建筑
-            Sprite* b = createBuildingByName(typeStr, level);
-            if (b)
+            // 进入异常处理保护区
+            try
             {
-                b->setPosition(Vec2(x, y));
-                this->addChild(b, 5);
+                std::stringstream ss2(segment);
+                std::string typeStr, levelStr, xStr, yStr;
 
-                // 手动把名字转换成 ID，以便占位
-                // 对应 BuildingManager 里的 createBuilding ID
-                int typeID = 0;
-                if (typeStr == "MilitaryCamp") typeID = 1;
-                else if (typeStr == "WaterCollection") typeID = 2;
-                else if (typeStr == "ArrowTower") typeID = 3;
-                else if (typeStr == "TownHall") typeID = 4;
-                else if (typeStr == "CoinCollection") typeID = 5;
-                else if (typeStr == "Cannon") typeID = 6;
-                else if (typeStr == "GoldStage") typeID = 7;
-                else if (typeStr == "ElixirTank") typeID = 8;
-                else if (typeStr == "Boom") typeID = 9;
-                // 只有当 ID 有效时才去占位
-                if (typeID > 0)
+                // 检查每一段数据是否存在
+                if (!std::getline(ss2, typeStr, ',') ||
+                    !std::getline(ss2, levelStr, ',') ||
+                    !std::getline(ss2, xStr, ',') ||
+                    !std::getline(ss2, yStr, ','))
                 {
-                    BuildingManager::getInstance()->occupyGrid(Vec2(x, y), typeID);
+                    // 如果数据段缺失，抛出异常或直接跳过
+                    throw std::runtime_error("Incomplete building segment");
                 }
+
+                // std::stoi 遇到非法字符会抛出 invalid_argument，超出范围抛出 out_of_range
+                int level = std::stoi(levelStr);
+                int x = std::stoi(xStr);
+                int y = std::stoi(yStr);
+
+                if (level < 1) level = 1;
+
+                // 创建建筑
+                Sprite* b = createBuildingByName(typeStr, level);
+                if (b)
+                {
+                    b->setPosition(Vec2(x, y));
+                    this->addChild(b, 5);
+
+                    // 手动把名字转换成 ID，以便占位
+                    int typeID = 0;
+                    if (typeStr == "MilitaryCamp") typeID = 1;
+                    else if (typeStr == "WaterCollection") typeID = 2;
+                    else if (typeStr == "ArrowTower") typeID = 3;
+                    else if (typeStr == "TownHall") typeID = 4;
+                    else if (typeStr == "CoinCollection") typeID = 5;
+                    else if (typeStr == "Cannon") typeID = 6;
+                    else if (typeStr == "GoldStage") typeID = 7;
+                    else if (typeStr == "ElixirTank") typeID = 8;
+                    else if (typeStr == "Boom") typeID = 9;
+
+                    // 只有当 ID 有效时才去占位
+                    if (typeID > 0)
+                    {
+                        BuildingManager::getInstance()->occupyGrid(Vec2(x, y), typeID);
+                    }
+                }
+                else
+                {
+                    // 如果名字对应的建筑没创建成功
+                    CCLOG("Warning: Unknown building name '%s'", typeStr.c_str());
+                }
+            }
+            // 转换错误
+            catch (const std::invalid_argument& e)
+            {
+                CCLOG("LoadData Error: Invalid number format in segment [%s] - %s", segment.c_str(), e.what());
+                // 这里选择不中断循环，而是跳过这一个损坏的建筑，继续加载下一个
+                continue;
+            }
+            // 数值越界
+            catch (const std::out_of_range& e)
+            {
+                CCLOG("LoadData Error: Number out of range in segment [%s] - %s", segment.c_str(), e.what());
+                continue;
+            }
+            // 其他所有标准异常
+            catch (const std::exception& e)
+            {
+                CCLOG("LoadData Error: Unexpected error - %s", e.what());
+                continue;
             }
         }
     }
 
     CCLOG("Game Loaded! Gems: %d", gems);
 }
+
 std::map<int, int> GameScene::_globalSoldiers;
 std::map<int, int> GameScene::_homeSoldiers;
 

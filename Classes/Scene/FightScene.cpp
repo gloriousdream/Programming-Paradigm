@@ -3,6 +3,8 @@
 #include <string>
 #include <ctime>  
 #include <cstdlib> 
+#include <new>
+#include <stdexcept>
 #include "Soldier/SoldierManager.h"
 #include "Building/BuildingManager.h"
 #include "AudioEngine.h"
@@ -105,117 +107,161 @@ std::vector<Vec2> FightScene::findPath(Vec2 startWorldPos, Vec2 targetWorldPos)
 {
     std::vector<Vec2> path;
 
-    // 安全拦截：如果起点已经在地图外，根本不用算路，直接返回
-    if (!isValidGrid(startWorldPos.x / TILE_SIZE, startWorldPos.y / TILE_SIZE)) {
-        CCLOG("Start pos is out of bounds!");
-        return path;
-    }
+    // 1. 坐标转换
+    int startX = static_cast<int>(startWorldPos.x / TILE_SIZE);
+    int startY = static_cast<int>(startWorldPos.y / TILE_SIZE);
+    int targetX = static_cast<int>(targetWorldPos.x / TILE_SIZE);
+    int targetY = static_cast<int>(targetWorldPos.y / TILE_SIZE);
 
-    // 1. 坐标转换 (世界 -> 格子)
-    int startX = startWorldPos.x / TILE_SIZE;
-    int startY = startWorldPos.y / TILE_SIZE;
-    int targetX = targetWorldPos.x / TILE_SIZE;
-    int targetY = targetWorldPos.y / TILE_SIZE;
-
-    // 如果起点终点重合，直接返回
-    if (startX == targetX && startY == targetY) return path;
-
-    // 2. 初始化 OpenList 和 ClosedList
-    std::vector<AStarNode*> openList;
-    std::vector<AStarNode*> closedList;
-
-    AStarNode* startNode = new AStarNode(startX, startY);
-    openList.push_back(startNode);
-
-    AStarNode* foundTarget = nullptr;
-
-    // 方向数组：上 下 左 右
-    int dir[4][2] = { {0,1}, {0,-1}, {-1,0}, {1,0} };
-
-    while (!openList.empty())
+    // 如果起点不合法，直接抛出异常
+    try
     {
-        // 找 F 值最小的节点
-        auto it = openList.begin();
-        AStarNode* current = *it;
-        for (auto i = openList.begin(); i != openList.end(); ++i)
-        {
-            if ((*i)->getF() < current->getF())
-            {
-                current = *i;
-                it = i;
-            }
+        if (!isValidGrid(startX, startY)) {
+            throw std::invalid_argument("Start position is out of map bounds.");
         }
 
-        openList.erase(it);
-        closedList.push_back(current);
+        // 起点终点重合，不需要寻路
+        if (startX == targetX && startY == targetY) return path;
 
-        // 到达目标？
-        if (current->x == targetX && current->y == targetY)
+        // 管理内存池，防止内存泄漏
+        std::vector<std::unique_ptr<AStarNode>> nodePool;
+
+        // 观察指针容器
+        std::vector<AStarNode*> openList;
+        std::vector<AStarNode*> closedList;
+
+        // 创建起点
+        auto startNodeUnique = std::make_unique<AStarNode>(startX, startY);
+        AStarNode* startNode = startNodeUnique.get();
+        nodePool.push_back(std::move(startNodeUnique));
+        openList.push_back(startNode);
+
+        AStarNode* foundTarget = nullptr;
+        const int dir[4][2] = { {0,1}, {0,-1}, {-1,0}, {1,0} };
+
+        int searchSteps = 0;
+        const int MAX_STEPS = 5000; // 最大步数限制
+
+        while (!openList.empty())
         {
-            foundTarget = current;
-            break;
+            // 错误处理 死循环/超时保护
+            // 如果搜索步数过多，抛出运行时错误，防止游戏卡死
+            if (++searchSteps > MAX_STEPS) {
+                throw std::runtime_error("Pathfinding exceeded maximum steps (Target unreachable or map too complex).");
+            }
+
+            // 使用迭代器 (Iterator) 遍历容器
+            auto lowestF_Iterator = openList.begin(); // 获取起始迭代器
+
+            for (auto it = openList.begin(); it != openList.end(); ++it)
+            {
+                if ((*it)->getF() < (*lowestF_Iterator)->getF())
+                {
+                    lowestF_Iterator = it;
+                }
+            }
+
+            // 防止迭代器失效或为空（虽然逻辑上不太可能，但为了严谨）
+            if (lowestF_Iterator == openList.end()) {
+                throw std::logic_error("OpenList iterator became invalid unexpectedly.");
+            }
+
+            AStarNode* current = *lowestF_Iterator;
+            openList.erase(lowestF_Iterator); // 使用迭代器删除
+
+            closedList.push_back(current);
+
+            // 找到目标
+            if (current->x == targetX && current->y == targetY)
+            {
+                foundTarget = current;
+                break;
+            }
+
+            // 遍历邻居
+            for (const auto& d : dir)
+            {
+                int nx = current->x + d[0];
+                int ny = current->y + d[1];
+
+                if (isGridBlocked(nx, ny)) continue;
+
+                // 检查 ClosedList
+                auto inClosed = std::find_if(closedList.begin(), closedList.end(),
+                    [nx, ny](AStarNode* n) { return n->x == nx && n->y == ny; });
+                if (inClosed != closedList.end()) continue;
+
+                // 检查 OpenList
+                auto inOpen = std::find_if(openList.begin(), openList.end(),
+                    [nx, ny](AStarNode* n) { return n->x == nx && n->y == ny; });
+
+                int newG = current->g + 1;
+
+                if (inOpen == openList.end())
+                {
+                    // 尝试分配内存（如果这里内存不足，std::make_unique 会抛出 std::bad_alloc）
+                    auto neighborUnique = std::make_unique<AStarNode>(nx, ny);
+                    AStarNode* neighbor = neighborUnique.get();
+                    neighbor->g = newG;
+                    neighbor->h = std::abs(nx - targetX) + std::abs(ny - targetY);
+                    neighbor->parent = current;
+
+                    nodePool.push_back(std::move(neighborUnique));
+                    openList.push_back(neighbor);
+                }
+                else
+                {
+                    AStarNode* neighbor = *inOpen;
+                    if (newG < neighbor->g)
+                    {
+                        neighbor->g = newG;
+                        neighbor->parent = current;
+                    }
+                }
+            }
         }
-
-        // 遍历邻居
-        for (int i = 0; i < 4; i++)
+        // 构建路径
+        if (foundTarget)
         {
-            int nx = current->x + dir[i][0];
-            int ny = current->y + dir[i][1];
-
-            if (isGridBlocked(nx, ny)) continue;
-
-            // 是否在 CloseList
-            bool inClosed = false;
-            for (auto node : closedList)
+            AStarNode* curr = foundTarget;
+            while (curr)
             {
-                if (node->x == nx && node->y == ny) inClosed = true;
+                path.push_back(Vec2(
+                    static_cast<float>(curr->x * TILE_SIZE + TILE_SIZE / 2),
+                    static_cast<float>(curr->y * TILE_SIZE + TILE_SIZE / 2)
+                ));
+                curr = curr->parent;
             }
-            if (inClosed) continue;
-
-            // 是否在 OpenList
-            AStarNode* neighbor = nullptr;
-            for (auto node : openList)
-            {
-                if (node->x == nx && node->y == ny) neighbor = node;
-            }
-
-            int newG = current->g + 1; // 假设每格代价 1
-
-            if (neighbor == nullptr)
-            {
-                neighbor = new AStarNode(nx, ny);
-                neighbor->g = newG;
-                neighbor->h = abs(nx - targetX) + abs(ny - targetY); // 曼哈顿距离
-                neighbor->parent = current;
-                openList.push_back(neighbor);
-            }
-            else if (newG < neighbor->g)
-            {
-                neighbor->g = newG;
-                neighbor->parent = current;
-            }
+            std::reverse(path.begin(), path.end());
         }
     }
-
-    // 3. 构建路径 (回溯)
-    if (foundTarget)
+    // 捕获具体的参数错误
+    catch (const std::invalid_argument& e)
     {
-        AStarNode* curr = foundTarget;
-        while (curr)
-        {
-            // 转回世界坐标中心点
-            path.push_back(Vec2(curr->x * TILE_SIZE + TILE_SIZE / 2, curr->y * TILE_SIZE + TILE_SIZE / 2));
-            curr = curr->parent;
-        }
-        std::reverse(path.begin(), path.end()); // 反转，变成从起点到终点
+        CCLOG("FindPath Error [Invalid Argument]: %s", e.what());
+        path.clear();
     }
-
-    // 清理内存 
-    for (auto n : openList) delete n;
-    for (auto n : closedList) delete n;
-    // foundTarget 在 closedList 或 openList 里，会被清理
+    // 捕获运行时逻辑错误（如步数超限）
+    catch (const std::runtime_error& e)
+    {
+        CCLOG("FindPath Error [Timeout]: %s", e.what());
+        path.clear();
+    }
+    // 捕获内存分配失败 (bad_alloc)
+    catch (const std::bad_alloc& e)
+    {
+        CCLOG("FindPath Error [Memory]: System out of memory! %s", e.what());
+        path.clear();
+    }
+    // 捕获其他未知异常
+    catch (const std::exception& e)
+    {
+        CCLOG("FindPath Error [Unknown]: %s", e.what());
+        path.clear();
+    }
 
     return path;
+    // 函数结束，nodePool 自动析构，所有 AStarNode 内存自动释放
 }
 
 void FightScene::showDeployMenu()
